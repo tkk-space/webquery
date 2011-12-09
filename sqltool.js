@@ -163,7 +163,7 @@ function run_ajax(type, result_id, post_add) {
 	// ajax処理
 	$.ajax({
 		type: "POST",
-		url: "sql_ajax.cgi",
+		url: "sql_ajax.php",
 		data: post,
 		success: function (html) {
 			if (type === 'tbl_option') {
@@ -175,43 +175,46 @@ function run_ajax(type, result_id, post_add) {
 			// 取得文字列（<##!##>が区切り文字）
 			// 結果(数字)<##!##>SQL<##!##>メッセージ文<##!##>表示されるHTML1<##!##>HTML2..3..			
 			var ret = html.split('<##!##>');
-			
-			// クエリを表示
-			if(ret[1]!='-1'){ $('#syntax').html(ret[1]); }
-			
-			// 色設定
-			var mes_color = mes_colors[ret[0]];
-			
-			//SQLを整形
-			var history_sql_val = text_clean(ret[1].replace(/\'/g, "\\'"));
-			var history_sql = (ret[1].length > 40)?ret[1].substring(0, 40) + '...':ret[1];
-						
-			//メッセージに現在の日時
-			ret[2] = '[' + get_date_txt() + '] ' + ret[2];
-
-			// メッセージを追加
-			$('#message option:first-child').removeAttr('selected');
-			$('#message').prepend('<option style="background-color:' + mes_color + '" onclick="$(\'#query\').val(\'' + history_sql_val + '\'); $(\'#message option:first-child\').attr(\'selected\',true)" title="' + history_sql_val + '">' + ret[2] + '<\/option>');
-			$('#message option:first-child').attr('selected', true);
-			$('#message').css('background-color', mes_color);
-			
-			//失敗時 色々初期化させる
-			//if (ret[0] === '1') {
-				//$('#db_select').html('');
-				//$('#tbl_select').html('');
-				//$('#col_select').html('');
-				//$('#tbl_list').html('');
+			if(ret.length>1){
+				// クエリを表示
+				if(ret[1]!='-1'){ $('#syntax').html(ret[1]); }
 				
-			// 成功時
-			//} else {
-				$('#db_viewer').html('');
-				var ids = result_id.split(',');
-				for (i = 0;i < ids.length;i++) {
-					$('#' + ids[i]).html(ret[3 + i]);
-				}
-			//}
-			
-			//$('#ip_select').removeAttr('disabled','');
+				// 色設定
+				var mes_color = mes_colors[ret[0]];
+				
+				//SQLを整形
+				var history_sql_val = text_clean(ret[1].replace(/\'/g, "\\'"));
+				var history_sql = (ret[1].length > 40)?ret[1].substring(0, 40) + '...':ret[1];
+							
+				//メッセージに現在の日時
+				ret[2] = '[' + get_date_txt() + '] ' + ret[2];
+	
+				// メッセージを追加
+				$('#message option:first-child').removeAttr('selected');
+				$('#message').prepend('<option style="background-color:' + mes_color + '" onclick="$(\'#query\').val(\'' + history_sql_val + '\'); $(\'#message option:first-child\').attr(\'selected\',true)" title="' + history_sql_val + '">' + ret[2] + '<\/option>');
+				$('#message option:first-child').attr('selected', true);
+				$('#message').css('background-color', mes_color);
+				
+				//失敗時 色々初期化させる
+				//if (ret[0] === '1') {
+					//$('#db_select').html('');
+					//$('#tbl_select').html('');
+					//$('#col_select').html('');
+					//$('#tbl_list').html('');
+					
+				// 成功時
+				//} else {
+					$('#db_viewer').html('');
+					var ids = result_id.split(',');
+					for (i = 0;i < ids.length;i++) {
+						$('#' + ids[i]).html(ret[3 + i]);
+					}
+				//}
+				
+				//$('#ip_select').removeAttr('disabled','');
+			}else{
+				alert('なんかエラー'+ret);
+			}
 		}
 	});
 	
@@ -502,7 +505,7 @@ function page_sel(id, cmd) {
 function run_query() {
 	run_ajax('query_run', 'db_viewer,view_opt');
 	//$("#query").val('');
-	$("#query").css('height', '60px');
+	//$("#query").css('height', '60px');
 }
 
 // ホスト切り替え時
@@ -569,8 +572,8 @@ function dbview_chk_toggle(id) {
 
 
 /*
-sub sqlformat {
-	my($in) = @_;
+function sqlformat() {
+	my(var in) = @_;
 
 	# 前の行につなげる単語
 	my(@line_continue) = qw(
@@ -632,90 +635,90 @@ AS JOIN THEN ASC DESC
 );
 
 	# 改行コードの統一
-	$in =~ s/\r\n/\n/g;
+	var in =~ s/\r\n/\n/g;
 
 	# 空白の統一
-	$in =~ s/\t/ /g;
-	$in =~ s/ +/ /g;
+	var in =~ s/\t/ /g;
+	var in =~ s/ +/ /g;
 
 	# カンマの後に空白を入れて見やすくする
-	$in =~ s/,([^ ])/, $1/g;
+	var in =~ s/,([^ ])/, var 1/g;
 
 	# キーワードとカッコがつながっている場合は分離する
 	foreach (@capitalize) {
-		$in =~ s/\)($_)/\) $1/gi;
-		$in =~ s/\(($_)/\( $1/gi;
-		$in =~ s/($_)\(/$1 \(/gi;
-		$in =~ s/($_)\)/$1 \)/gi;
+		var in =~ s/\)(var _)/\) var 1/gi;
+		var in =~ s/\((var _)/\( var 1/gi;
+		var in =~ s/(var _)\(/var 1 \(/gi;
+		var in =~ s/(var _)\)/var 1 \)/gi;
 	}
 
-	my ($out) = '';
-	my ($nest_level) = 0;
-	my ($indent) = 0;
-	my ($newline) = 1;
+	my (var out) = '';
+	my (var nest_level) = 0;
+	my (var indent) = 0;
+	my (var newline) = 1;
 
-	foreach (split(/\n/, $in)) {
-		for my $word (split) {
-			if (scalar(grep {uc($_) eq uc($word)} @line_continue) > 0) {
-				if (substr($out, length($out) - 1) eq "\n") {
-					$out = substr($out, 0, length($out) - 1);
+	foreach (split(/\n/, var in)) {
+		for my var word (split) {
+			if (scalar(grep {uc(var _) eq uc(var word)} @line_continue) > 0) {
+				if (substr(var out, length(var out) - 1) eq "\n") {
+					var out = substr(var out, 0, length(var out) - 1);
 				}
 
-			} elsif (scalar(grep {uc($_) eq uc($word)} @line_init) > 0) {
-				$out .= "\n" if (! $newline);
-				$newline = 1;
+			} elsif (scalar(grep {uc(var _) eq uc(var word)} @line_init) > 0) {
+				var out .= "\n" if (! var newline);
+				var newline = 1;
 			}
 
-			if (scalar(grep {uc($_) eq uc($word)} @indent_init) > 0) {
-				$indent = 0;
+			if (scalar(grep {uc(var _) eq uc(var word)} @indent_init) > 0) {
+				var indent = 0;
 			}
 
-			if ($newline) {
-				$out .= indent_string($nest_level + $indent);
-				$newline = 0;
+			if (var newline) {
+				var out .= indent_string(var nest_level + var indent);
+				var newline = 0;
 
 			} else {
-				$out .= " ";
+				var out .= " ";
 			}
 
-			if (scalar(grep {uc($_) eq uc($word)} @capitalize) > 0) {
-				$out .= uc($word);
+			if (scalar(grep {uc(var _) eq uc(var word)} @capitalize) > 0) {
+				var out .= uc(var word);
 
 			} else {
-				$out .= $word;
+				var out .= var word;
 			}
 
-			while ($word =~ /\(/g) {
-				$nest_level++;
+			while (var word =~ /\(/g) {
+				var nest_level++;
 			}
-			while ($word =~ /\)/g) {
-				$nest_level--;
-			}
-
-			if ($word =~ /,$/ || scalar(grep {uc($_) eq uc($word)} @line_terminate) > 0) {
-				$out .= "\n";
-				$newline = 1;
+			while (var word =~ /\)/g) {
+				var nest_level--;
 			}
 
-			if (scalar(grep {uc($_) eq uc($word)} @indent_plus) > 0) {
-				$indent++;
+			if (var word =~ /,var / || scalar(grep {uc(var _) eq uc(var word)} @line_terminate) > 0) {
+				var out .= "\n";
+				var newline = 1;
+			}
 
-			} elsif (scalar(grep {uc($_) eq uc($word)} @indent_minus) > 0) {
-				$indent--;
+			if (scalar(grep {uc(var _) eq uc(var word)} @indent_plus) > 0) {
+				var indent++;
+
+			} elsif (scalar(grep {uc(var _) eq uc(var word)} @indent_minus) > 0) {
+				var indent--;
 			}
 		}
 	}
-	return $out;
+	return var out;
 }
 
-sub indent_string {
-	my($i) = @_;
+function indent_string() {
+	my(var i) = @_;
 
-	my $ind = '';
-	for (1..$i) {
-		$ind .= "\t";
+	my var ind = '';
+	for (1..var i) {
+		var ind .= "\t";
 	}
-	return $ind;
+	return var ind;
 }
 */
 
