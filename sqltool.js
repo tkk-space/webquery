@@ -173,47 +173,34 @@ function run_ajax(type, result_id, post_add) {
 			//alert(html);
 			
 			// 取得文字列（<##!##>が区切り文字）
-			// 結果(数字)<##!##>SQL<##!##>メッセージ文<##!##>表示されるHTML1<##!##>HTML2..3..			
+			// メッセージ文CSV<##!##>表示されるHTML1<##!##>HTML2..3..
+			// CSV:日付,info,メッセージ,クエリ
 			var ret = html.split('<##!##>');
 			if(ret.length>1){
-				// クエリを表示
-				if(ret[1]!='-1'){ $('#syntax').html(ret[1]); }
-				
 				// 色設定
-				var mes_color = mes_colors[ret[0]];
+				var mes_color = mes_colors[0];
+				var mes_csv=(String)(ret[0]).split(',');
 				
-				//SQLを整形
-				var history_sql_val = text_clean(ret[1].replace(/\'/g, "\\'"));
-				var history_sql = (ret[1].length > 40)?ret[1].substring(0, 40) + '...':ret[1];
-							
-				//メッセージに現在の日時
-				ret[2] = '[' + get_date_txt() + '] ' + ret[2];
-	
+				var history_sql_val = text_clean(mes_csv[3].replace(/\'/g, "\\'"));
+				var history_sql = (mes_csv[3].length > 40)?mes_csv[3].substring(0, 40) + '...':mes_csv[3];
+				
+				//メッセージ整形
+				var mes='[' + mes_csv[0] + '] ' + ' ' + mes_csv[1] + ' ' + mes_csv[2];
+				
 				// メッセージを追加
 				$('#message option:first-child').removeAttr('selected');
-				$('#message').prepend('<option style="background-color:' + mes_color + '" onclick="$(\'#query\').val(\'' + history_sql_val + '\'); $(\'#message option:first-child\').attr(\'selected\',true)" title="' + history_sql_val + '">' + ret[2] + '<\/option>');
+				$('#message').prepend('<option style="background-color:' + mes_color + '" onclick="$(\'#query\').val(\'' + history_sql_val + '\'); $(\'#message option:first-child\').attr(\'selected\',true)" title="' + history_sql_val + '">' + mes + '<\/option>');
 				$('#message option:first-child').attr('selected', true);
 				$('#message').css('background-color', mes_color);
 				
-				//失敗時 色々初期化させる
-				//if (ret[0] === '1') {
-					//$('#db_select').html('');
-					//$('#tbl_select').html('');
-					//$('#col_select').html('');
-					//$('#tbl_list').html('');
-					
-				// 成功時
-				//} else {
-					$('#db_viewer').html('');
-					var ids = result_id.split(',');
-					for (i = 0;i < ids.length;i++) {
-						$('#' + ids[i]).html(ret[3 + i]);
-					}
-				//}
+				$('#db_viewer').html('');
+				var ids = result_id.split(',');
+				for (i = 0;i < ids.length;i++) {
+					$('#' + ids[i]).html(ret[1 + i]);
+				}
 				
-				//$('#ip_select').removeAttr('disabled','');
 			}else{
-				alert('なんかエラー'+ret);
+				alert('error!\n'+ret);
 			}
 		}
 	});
@@ -527,7 +514,7 @@ function run_host() {
 
 // DB切り替え時
 function run_db() {
-	run_ajax('tbl_option', 'tbl_select,tbl_list,tbl_type_select');
+	run_ajax('tbl_option', 'tbl_select,tbl_type_select');
 	ls_save_html('db_select');
 }
 
@@ -723,6 +710,7 @@ function indent_string(i) {
 */
 
 
+
 // 初期化処理
 $(document).ready( function() {
 	// クライアントIP取得
@@ -732,7 +720,7 @@ $(document).ready( function() {
 	});
 	
 	// タイトル更新
-	$('#title').html('SQL Tool [' + location.hostname + ']');
+	$('#title').html('WebQuery [' + location.hostname + ']');
 	
 	var default_ip = ls_load('ip_select');
 	var default_db = ls_load('db_select');

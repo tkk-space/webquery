@@ -1,4 +1,14 @@
-﻿<html>
+﻿<?php
+function key_radio_forms($id_name){
+	for($i=0;$i<7;$i++){
+		$key_code=$i+117;
+		$key_name='F'.(6+$i);
+		echo '<label><input type="radio" id="'.$id_name.'" name="'.$id_name.'" value="'.$key_code.'"  onchange="ls_save(\''.$id_name.'\');"  />'.$key_name.'</label>';
+	}
+}
+
+?>
+<html>
 <head>
 <style type="text/css">
 <!--
@@ -22,7 +32,6 @@
 			<!-- DBパンくずセレクト -->
 			<select id="ip_select" name="ip_select" size="1" type="text" onchange="run_host();">
 			</select>
-			<input type="hidden" value="">
 			<span id="" style="font-size: small;">></span>
 			<select id="db_select" name="db_select" size="1" type="text" onchange="run_db();">
 				<option value="">DB一覧</option>
@@ -36,7 +45,7 @@
 			</select>
 			<span id="" style="font-size: small;">></span>
 			<select id="col_select" name="col_select" onchange="create_refa();" size="1" type="text">
-			<option value="">列一覧</option>
+				<option value="">列一覧</option>
 			</select>
 			<span id="" style="font-size: small;">
 			[
@@ -98,11 +107,11 @@
 				<tr>
 					<td style="text-align:right;">テーブルリスト内容：</td>
 					<td>
-						<label><input type="checkbox" name="setting_tblsel_view_type_r" id="setting_tblsel_view_type_r" onclick="ls_save('setting_tblsel_view_type_r');" value="r" />TABLE</label>
-						<label><input type="checkbox" name="setting_tblsel_view_type_v" id="setting_tblsel_view_type_v" onclick="ls_save('setting_tblsel_view_type_v');" value="v" />VIEW</label>
-						<label><input type="checkbox" name="setting_tblsel_view_type_s" id="setting_tblsel_view_type_s" onclick="ls_save('setting_tblsel_view_type_s');" value="s" />SEQUENCE</label>
-						<label><input type="checkbox" name="setting_tblsel_view_type_i" id="setting_tblsel_view_type_i" onclick="ls_save('setting_tblsel_view_type_i');" value="i" />INDEX</label>
-						<label><input type="checkbox" name="setting_tblsel_view_type_sp" id="setting_tblsel_view_type_sp" onclick="ls_save('setting_tblsel_view_type_sp');" value="S" />SPECIAL</label>
+						<label><input type="checkbox" name="setting_tblsel_view_type[]" id="setting_tblsel_view_type_r" onclick="ls_save('setting_tblsel_view_type_r');" value="r" />TABLE</label>
+						<label><input type="checkbox" name="setting_tblsel_view_type[]" id="setting_tblsel_view_type_v" onclick="ls_save('setting_tblsel_view_type_v');" value="v" />VIEW</label>
+						<label><input type="checkbox" name="setting_tblsel_view_type[]" id="setting_tblsel_view_type_s" onclick="ls_save('setting_tblsel_view_type_s');" value="s" />SEQUENCE</label>
+						<label><input type="checkbox" name="setting_tblsel_view_type[]" id="setting_tblsel_view_type_i" onclick="ls_save('setting_tblsel_view_type_i');" value="i" />INDEX</label>
+						<label><input type="checkbox" name="setting_tblsel_view_type[]" id="setting_tblsel_view_type_sp" onclick="ls_save('setting_tblsel_view_type_sp');" value="S" />SPECIAL</label>
 					</td>
 				</tr>
 				
@@ -116,51 +125,19 @@
 				</tr>
 				<tr>
 					<td style="text-align:right;">実行：</td>
-					<td>
-						<label><input type="radio" id="setting_key_run" name="setting_key_run" value="117"  onchange="ls_save('setting_key_run');"  />F6</label>
-						<label><input type="radio" id="setting_key_run" name="setting_key_run" value="118"  onchange="ls_save('setting_key_run');" checked />F7</label>
-						<label><input type="radio" id="setting_key_run" name="setting_key_run" value="119"  onchange="ls_save('setting_key_run');" />F8</label>
-						<label><input type="radio" id="setting_key_run" name="setting_key_run" value="120"  onchange="ls_save('setting_key_run');" />F9</label>
-						<label><input type="radio" id="setting_key_run" name="setting_key_run" value="121"  onchange="ls_save('setting_key_run');" />F10</label>
-						<label><input type="radio" id="setting_key_run" name="setting_key_run" value="122"  onchange="ls_save('setting_key_run');" />F11</label>
-						<label><input type="radio" id="setting_key_run" name="setting_key_run" value="123"  onchange="ls_save('setting_key_run');" />F12</label>
-					</td>
+					<td><?php key_radio_forms('setting_key_run');?></td>
 				</tr>
 				<tr>
 					<td style="text-align:right;">整形：</td>
-					<td>
-						<label><input type="radio" id="setting_key_clean" name="setting_key_clean" value="117"  onchange="ls_save('setting_key_clean');" />F6</label>
-						<label><input type="radio" id="setting_key_clean" name="setting_key_clean" value="118"  onchange="ls_save('setting_key_clean');" />F7</label>
-						<label><input type="radio" id="setting_key_clean" name="setting_key_clean" value="119"  onchange="ls_save('setting_key_clean');" checked />F8</label>
-						<label><input type="radio" id="setting_key_clean" name="setting_key_clean" value="120"  onchange="ls_save('setting_key_clean');" />F9</label>
-						<label><input type="radio" id="setting_key_clean" name="setting_key_clean" value="121"  onchange="ls_save('setting_key_clean');" />F10</label>
-						<label><input type="radio" id="setting_key_clean" name="setting_key_clean" value="122"  onchange="ls_save('setting_key_clean');" />F11</label>
-						<label><input type="radio" id="setting_key_clean" name="setting_key_clean" value="123"  onchange="ls_save('setting_key_clean');" />F12</label>
-					</td>
+					<td><?php key_radio_forms('setting_key_crean');?></td>
 				</tr>
 				<tr>
 					<td style="text-align:right;">更新：</td>
-					<td>
-						<label><input type="radio" id="setting_key_update" name="setting_key_update" value="117"  onchange="ls_save('setting_key_update');" />F6</label>
-						<label><input type="radio" id="setting_key_update" name="setting_key_update" value="118"  onchange="ls_save('setting_key_update');" />F7</label>
-						<label><input type="radio" id="setting_key_update" name="setting_key_update" value="119"  onchange="ls_save('setting_key_update');" />F8</label>
-						<label><input type="radio" id="setting_key_update" name="setting_key_update" value="120"  onchange="ls_save('setting_key_update');" checked />F9</label>
-						<label><input type="radio" id="setting_key_update" name="setting_key_update" value="121"  onchange="ls_save('setting_key_update');" />F10</label>
-						<label><input type="radio" id="setting_key_update" name="setting_key_update" value="122"  onchange="ls_save('setting_key_update');" />F11</label>
-						<label><input type="radio" id="setting_key_update" name="setting_key_update" value="123"  onchange="ls_save('setting_key_update');" />F12</label>
-					</td>
+					<td><?php key_radio_forms('setting_key_update');?></td>
 				</tr>
 				<tr>
 					<td style="text-align:right;">↑：</td>
-					<td>
-						<label><input type="radio" id="setting_key_up" name="setting_key_up" value="117"  onchange="ls_save('setting_key_up');" />F6</label>
-						<label><input type="radio" id="setting_key_up" name="setting_key_up" value="118"  onchange="ls_save('setting_key_up');" />F7</label>
-						<label><input type="radio" id="setting_key_up" name="setting_key_up" value="119"  onchange="ls_save('setting_key_up');" />F8</label>
-						<label><input type="radio" id="setting_key_up" name="setting_key_up" value="120"  onchange="ls_save('setting_key_up');" />F9</label>
-						<label><input type="radio" id="setting_key_up" name="setting_key_up" value="121"  onchange="ls_save('setting_key_up');" checked />F10</label>
-						<label><input type="radio" id="setting_key_up" name="setting_key_up" value="122"  onchange="ls_save('setting_key_up');" />F11</label>
-						<label><input type="radio" id="setting_key_up" name="setting_key_up" value="123"  onchange="ls_save('setting_key_up');" />F12</label>
-					</td>
+					<td><?php key_radio_forms('setting_key_up');?></td>
 				</tr>
 				<tr>
 					<td style="text-align:right;">省略文字数：</td>
@@ -192,46 +169,29 @@
 		<div id="control_panel" name="control_panel" style="background-color:#666;padding:5px;vertical-align: middle;">
 			<!-- クエリ入力ボックス -->
 			<div id="query_panel" style="">
-				<textarea id="query" name="query" style="height:50px;width:100%;font-size:small;resize:vertical;">" placeholder='実行クエリ' onkeypress="run_key(event);" readonly="readonly"></textarea>
+				<textarea id="query" name="query" style="height:50px;width:100%;font-size:small;resize:vertical;" placeholder='実行クエリ' onkeypress="run_key(event);" readonly="readonly"></textarea>
 			</div>
-		
-		
-			<!--
-			<input type="button" value=" 拡大 " id="run_clean" style="" onclick="run_zoom();" />
-			-->
+			
 			<input type="button" value=" 実行 " id="run_sql" style="width:5%;" onClick="run_query()" />
 			<input type="button" value=" 整形 " id="run_clean" style="width:5%;" onClick="run_clean_query()" />
 			<!--<input type='button' value=" ↑ " id="run_edit" style="width:5%;" onClick="run_edit()" />--->
 
 			<select id="message" name="message" size="1" style="background-color:#fff;width:89%;"></select>
 			<!--<a id="save_link" name="save_link" href="#" style="font-size:small;color:white;margin-right:5px;margin-left:5px;">保存</a>-->
-			
-			<!--
-			<select id="encode-type">
-			<option value="default">Encode</option>
-			<option value="utf-8">utf-8</option>
-			<option value="shift-jis">sjis</option>
-			</select>
-			-->
-			<!--<input type="file" id="read_btn">-->
+		</div>
+		
+		<!-- 実行パネルオプション部分 -->
+		<div id="control_opt" name="control_opt"></div>
+		
+		<div id="result" style="background-color:#ccc;padding:3px;">
+			<!--<input type="button" value=" ↑ " id="run_edit" style="" onclick="query_edit();"/>-->
+			<code class="sql" style="font-size:small;">
+				<span id="syntax"></span>
+			</code>
 		</div>
 		
 		<!-- sql結果表示 -->
 		<div id="sql_panel" name="sql_panel" style="float:left; width:100%;">
-			<!-- テーブルリスト -->
-			<div id="tbl_list" class='tbl_list' bgcolor="#ff0000" style="display:none;background-color:#ddffff;float:left;font-size:x-small;padding:5px;">
-			</div>
-			
-			<div id="result" style="background-color:#ccc;padding:3px;">
-				<!--<div class="success" style="float:left;">
-					SQL実行内容 0 - 29 (68)  0.0665 秒<br>
-				</div>-->
-				<!--<input type="button" value=" ↑ " id="run_edit" style="" onclick="query_edit();"/>-->
-				<code class="sql" style="font-size:small;">
-					<span id="syntax"></span>
-				</code>
-			</div>
-			
 			<!-- ページャー部分 -->
 			<div id="view_opt" name="view_opt"></div>
 			
