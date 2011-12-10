@@ -1,67 +1,56 @@
 <?php
 
-$dsn='host='.$_POST["setting_connect_ip"];
-
-if($_POST["db_select"] != '' && $_POST["db_select"] != 'reading...'){
-	$dsn.=' dbname='.$_POST["db_select"];
-}
-if($_POST["setting_connect_user"]){
-	$dsn.=' user='.$_POST["setting_connect_user"];
-}
-if($_POST["setting_connect_pass"]){
-	$dsn.=' password='.$_POST["setting_connect_pass"];
-}
-if($_POST["setting_connect_port"]){
-	$dsn.=' port='.$_POST["setting_connect_port"];	
-}else{
-	$dsn.=' port=5432';	
-}
 $html = array();
-$DB=pg_connect($dsn) or error_print('データベース接続エラー：'.pg_last_error($DB));
+
+$connect_timeout=3;
+
+$dsn='host='.$_POST["setting_connect_ip"];
+$dsn.=($_POST["db_select"] != '' && $_POST["db_select"] != 'reading...')?' dbname='.$_POST["db_select"]:'';
+$dsn.=($_POST["setting_connect_user"])?' user='.$_POST["setting_connect_user"]:'';
+$dsn.=($_POST["setting_connect_pass"])?' password='.$_POST["setting_connect_pass"]:'';
+$dsn.=($_POST["setting_connect_port"])?$dsn.=' port='.$_POST["setting_connect_port"]:' port=5432';
+$dsn.=($connect_timeout)?" connect_timeout=$connect_timeout":'';
+
+$DB=pg_connect($dsn) or error_print('データベース接続エラー(.'.$_POST["setting_connect_name"].'.)：'.$dsn);
 
 if($_POST["type"] == "db_option"){
 	$rnum=2;
 	$html[0]=db_option($DB);
-	$mes=' DBに接続しました。(HOST:'.$_POST["setting_connect_ip"].')';
+	$mes=' DBに接続しました。'.mes_info();
 }else if($_POST["type"] == "tbl_option"){
 	$rnum=2;
 	$html =tbl_option($DB);
-	$mes='DBを選択しました(HOST:'.$_POST["setting_connect_ip"].' DB:'.$_POST["db_select"].')';
+	$mes='DBを選択しました '.mes_info();
 }else if($_POST["type"] == 'db_view'){
 	$rnum=5;
 	$sqlx[0]='SELECT * FROM '.$_POST["tbl_select"].' '.create_query_limit();
 	$html[0]=table_naiyo($DB,$sqlx[0]);
-	$html[1]=pager_create($DB,$_POST["tbl_select"]);
-	$html[2]=col_option($DB);
-	$mes='テーブルを表示しました。(HOST:'.$_POST["setting_connect_ip"].'  DB:'.$_POST["db_select"].'  TABLE:'.$_POST["tbl_select"].'  PAGE:'.$_POST["page_select"].'  NUM:'.$_POST["limit_num"].')';
+	$html[1]=pager_create($DB,$sqlx[0]);
+	$html[2]=col_option($DB,$sqlx[0]);
+	$mes='テーブルを表示しました。'.mes_info();
 }else if($_POST["type"] == 'query_run'){
 	$pager='';
-	if(preg_match("/(.*);$/",$_POST["query"])){
-		$sqlx=split("/;/",$_POST["query"]);
-	}else{
-		$sqlx[0]=$_POST["query"];
-	}
+	$sqlx[0]=$_POST["query"];
 	
 	if(preg_match("/^[\s]*SELECT/i",$sqlx[0])){
-		$html[0]=table_naiyo($DB,$sqlx[0]);
-		$html[1]=pager_create($DB,'( '.$sqlx[0].' ) as a');
+		$html[0].=table_naiyo($DB,$sqlx[0]);
+		$html[1].=pager_create($DB,$sqlx[0]);
 	}else{
-		for($i=0;$i<@sqlx;$i++){
-			run_sql_query($DB,$sqlx[$i]);
-			$html[0].="実行しました。<font color=\"#ff0000\">$sqlx[$i]</font><br>";
-		}
+		run_sql_query($DB,$sqlx[0]);
+		$html[0].="実行しました。<br><font color=\"#ff0000\">$sqlx[0]</font><br>";
 	}
-	$mes='クエリを実行しました('.$_POST["query"].') (HOST:'.$_POST["setting_connect_ip"].' DB:'.$_POST["db_select"].'  )';
+	
+	$mes='クエリを実行しました('.$_POST["query"].') '.mes_info();
 }else if($_POST["type"] == 'reload'){
 	$rnum=2;
 	$sqlx[0]='SELECT * FROM '.$_POST["tbl_select"].' '.create_query_limit();
 	$html[0]=db_option($DB);
-	//($html[1],$html[5],$html[6])=tbl_option();
-	$html[2]=col_option($DB);
+	$html[1]=tbl_option($DB,$sqlx[0]);
+	$html[2]=col_option($DB,$sqlx[0]);
 	$html[3]=table_naiyo($DB,$sqlx[0]);
-	$html[4]=pager_create($DB,$_POST["tbl_select"]);
+	$html[4]=pager_create($DB,$sqlx[0]);
 	
-	$mes=$_POST["tbl_select"].'更新しました (HOST:'.$_POST["setting_connect_ip"].' DB:'.$_POST["db_select"].' TABLE:'.$_POST["tbl_select"].' )';
+	$mes=$_POST["tbl_select"].'更新しました '.mes_info();
 }else{
 	error_print("タイプ実行エラー：".$_POST["type"]);
 }
@@ -86,7 +75,6 @@ function create_query_limit(){
 }
 
 function pager_create($DB,$tbl_query){
-	//my($tbl_query)=@_;
 	$dat=page_cnt($DB,$tbl_query);
 	$pager='
 	<div>
@@ -106,10 +94,9 @@ function pager_create($DB,$tbl_query){
 
 // カウント・ページ数の計算
 function page_cnt($DB,$tbl_query){
-	$sqlx_cnt="SELECT COUNT(*) as cnt FROM $tbl_query ";
-	$pdb=run_sql_query($DB,$sqlx_cnt);
-	$rows=pg_fetch_array($pdb);
-	$page_num=(int)(((int)$rows/$_POST["limit_num"])+1);
+	$pdb=run_sql_query($DB,$tbl_query);
+	$rows=pg_num_rows($pdb);
+	$page_num=ceil($rows/$_POST["limit_num"]);
 	$html_option_pages='';
 	for($i=1;$i<=$page_num;$i++){
 		if($_POST["page_select"] == $i){ $html_option_pages.='<option value="'.$i.'" selected>'.$i.'</option>';}
@@ -123,7 +110,7 @@ function page_cnt($DB,$tbl_query){
 //DBを表示
 function db_option($DB) {
 	$db_sqlx="SELECT datname FROM pg_database WHERE datname NOT IN ('template0','template1') ORDER BY datname;";
-	$datname=pg_query($DB,$db_sqlx) or die(error_print('データベース実行エラー：'.pg_last_error($DB))); 
+	$datname=pg_query($DB,$db_sqlx) or die(error_print('データベース実行エラー('.$_POST["type"].')：'.pg_last_error($DB))); 
 
 	$db_opt_html='<option value=""></option>';
 	while($row=pg_fetch_array($datname)){
@@ -135,15 +122,7 @@ function db_option($DB) {
 }
 
 function tbl_option($DB) {
-	$tbl_sqlx = "
-SELECT c.relname,c.relkind,reltuples as rows
-FROM pg_catalog.pg_class c
-JOIN pg_catalog.pg_roles r ON r.oid = c.relowner
-LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-WHERE n.nspname NOT IN ('pg_catalog', 'pg_toast') 
-AND pg_catalog.pg_table_is_visible(c.oid)
-ORDER BY relkind, relname;
-";
+	$tbl_sqlx = get_tbl_query();
 	$pdb=pg_query($DB,$tbl_sqlx) or error_print("データベース実行エラー(".$_POST["type"].")：".pg_last_error($DB));
 	
 	# テーブルのオプション表示、テーブル表示
@@ -179,11 +158,11 @@ ORDER BY relkind, relname;
 	$tbl_typ_opt_html='<option></option>';
 	foreach($type_rows as $type){
 		if($type_rows[$type] > 0){
-			if($type == 'r')	{ $tbl_typ_opt_html.='<option value="r">TABLE('.$type_rows[$type].')</option>'; }
-			else if($type == 'v')	{ $tbl_typ_opt_html.='<option value="v">VIEW('.$type_rows[$type].')</option>'; }
-			else if($type == 'i')	{ $tbl_typ_opt_html.='<option value="i">INDEX('.$type_rows[$type].')</option>'; }
-			else if($type == 'S')	{ $tbl_typ_opt_html.='<option value="S">S==UENCE('.$type_rows[$type].')</option>'; }
-			else if($type == 's')	{ $tbl_typ_opt_html.='<option value="s">SPECIAL('.$type_rows[$type].')</option>'; }
+			if		($type == 'r'){ $tbl_typ_opt_html.='<option value="r">TABLE('.$type_rows[$type].')</option>'; }
+			else if	($type == 'v'){ $tbl_typ_opt_html.='<option value="v">VIEW('.$type_rows[$type].')</option>'; }
+			else if	($type == 'i'){ $tbl_typ_opt_html.='<option value="i">INDEX('.$type_rows[$type].')</option>'; }
+			else if	($type == 'S'){ $tbl_typ_opt_html.='<option value="S">SEQUENCE('.$type_rows[$type].')</option>'; }
+			else if	($type == 's'){ $tbl_typ_opt_html.='<option value="s">SPECIAL('.$type_rows[$type].')</option>'; }
 		}
 	}
 	
@@ -191,36 +170,16 @@ ORDER BY relkind, relname;
 }
 
 //列名の取得
-function col_option($DB){
-	$col_sqlx="
-	SELECT
-		pg_attribute.attname,
-		pg_type.typname
-	FROM
-		pg_attribute,
-		pg_type
-	WHERE
-		pg_attribute.atttypid = pg_type.oid AND
-		( pg_attribute.atttypid < 26 OR pg_attribute.atttypid > 29 ) AND
-		attrelid IN (
-			SELECT
-				pg_class.oid
-			FROM
-				pg_class,
-				pg_namespace
-			WHERE
-				relname='' AND
-				pg_class.relnamespace=pg_namespace.oid AND
-				pg_namespace.nspname='public'
-		);
-	";
-	
+function col_option($DB,$col_sqlx){
 	$pdb=run_sql_query($DB,$col_sqlx);
 	$col_html.= "<option></option>";
-	while($db_data = pg_fetch_array($pdb)){
-		$selected='';
-		if($_POST["col_select"] == $db_data[0]){ $selected="selected"; }
-		$col_html.='<option value="'.$db_data[0].'" '.$selected.'>'.$db_data[0].' ('.$db_data[1].')</option>';
+	$field_num=pg_num_fields($pdb);
+	for ($i = 0; $i < $field_num; $i++){
+		$name=pg_field_name($pdb,$i);
+		$type=pg_field_type($pdb,$i);
+	
+		$selected=($_POST["col_select"] == $name)?"selected":'';
+		$col_html.='<option value="'.$name.'" '.$selected.'>'.$name.' ('.$type.')</option>';
 	}
 	return $col_html;
 }
@@ -232,11 +191,12 @@ function table_naiyo($DB,$tbl_naiyo_sqlx){
 	$html_table_naiyo='<table cellpadding="1" cellspacing="0" border="1" style="border-width:1px;border-color:#ccc; font-size:small">';
 	
 	// フィールド名
-	
 	$html_table_naiyo.='<tr bgcolor="#333" style="color:#fff;"><td><input type="checkbox"></td>';
 	$field_num=pg_num_fields($pdb);
 	for ($i = 0; $i < $field_num; $i++){
 		$name=pg_field_name($pdb,$i);
+		$type=pg_field_type($pdb,$i);
+		
 		// order byを追加する
 		$html_table_naiyo.='<td><a  href="javascript:void(0);" onclick="add_order(\''.$name.'\');" style="color:#fff" title="">'.$name.'</td>';
 	}
@@ -262,7 +222,7 @@ function table_naiyo($DB,$tbl_naiyo_sqlx){
 		$html_table_naiyo.='</tr>';
 		$t++;
 	}
-
+	
 	$html_table_naiyo.='</table>';
 	
 	return $html_table_naiyo;
@@ -287,10 +247,9 @@ function result_print($ary){
 }
 
 function run_sql_query($DB,$sqlx){
-	$pdb=pg_query($DB,$sqlx) or error_print("データベース実行エラー(".$_POST["type"].")：".pg_last_error($DB));
+	$pdb=pg_query($DB,$sqlx) or error_print("データベース実行エラー(".$_POST["type"].")：".pg_last_error($DB).'['.$sqlx.']');
 	return $pdb;
 }
-
 
 function check_db_state(){
 	$result = doDiffDb();
@@ -397,46 +356,9 @@ function doDiffDb(){
 	return $ret;
 }
 
-
 function _get_tables($db){
 	$ret = array();
-/*	$str_query  = '';
-	$str_query .= ' SELECT distinct  ';
-	$str_query .= '  a.relname ';
-	$str_query .= ' from ';
-	$str_query .= ' pg_attribute as b, ';
-	$str_query .= ' (select ';
-	$str_query .= ' relid, relname ';
-	$str_query .= ' from ';
-	$str_query .= ' pg_stat_user_tables ';
-	$str_query .= ' ) as a ';
-	$str_query .= ' where ';
-	$str_query .= ' a.relid = b.attrelid ';
-	$str_query .= ' and b.attnum > 0 ';
-	$str_query .= ' ORDER BY relname ';
-	$str_query .= ' ; ';*/
-	
-	$str_query .= ' SELECT	DISTINCT ';
-	$str_query .= ' 	a.relname ';
-	$str_query .= ' FROM ';
-	$str_query .= ' 	pg_attribute AS b, ';
-	$str_query .= ' 	( ';
-	$str_query .= ' 	SELECT ';
-	$str_query .= ' 		relid, ';
-	$str_query .= ' 		relname ';
-	$str_query .= ' 	FROM ';
-	$str_query .= ' 		pg_stat_user_tables ) AS a ';
-	$str_query .= ' WHERE ';
-	$str_query .= ' 	a.relid = b.attrelid AND ';
-	$str_query .= ' 	b.attnum > 0 ';
-	$str_query .= ' UNION ';
-	$str_query .= ' SELECT ';
-	$str_query .= ' 	viewname AS relname ';
-	$str_query .= ' FROM ';
-	$str_query .= ' 	pg_views ';
-	$str_query .= ' WHERE ';
-	$str_query .= ' 	schemaname=\'public\' ';
-
+	$str_query=get_tbl_query();
 	$tables = gethashs($db, $str_query);
 	foreach($tables as $table){
 		$ret[] = $table['relname'];
@@ -481,5 +403,26 @@ function gethashs($db,$sqlx){
 	return $fd;
 }
 
+function mes_info(){
+	$mes_info.='(';
+	$mes_info.=($_POST["setting_connect_ip"])	?' HOST:'.$_POST["setting_connect_ip"]:'';
+	$mes_info.=($_POST["db_select"])			?' DB:'.$_POST["db_select"]:'';
+	$mes_info.=($_POST["tbl_select"])			?' TABLE:'.$_POST["tbl_select"]:'';
+	$mes_info.=($_POST["page_select"]!=''&&$_POST["page_select"]!=1) ?' PAGE:'.$_POST["page_select"]:'';
+	$mes_info.=' )';
+	return $mes_info;
+}
 
+function get_tbl_query(){
+	$query="
+SELECT c.relname,c.relkind,reltuples as rows
+FROM pg_catalog.pg_class c
+JOIN pg_catalog.pg_roles r ON r.oid = c.relowner
+LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname NOT IN ('pg_catalog', 'pg_toast') 
+AND pg_catalog.pg_table_is_visible(c.oid)
+ORDER BY relkind, relname;
+";
+	return $query;
+}
 ?>

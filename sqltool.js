@@ -15,7 +15,7 @@ function conv2deg(val) {
 // 現在の日時テキストを取得
 function get_date_txt() {
 	var date = new Date();
-	date = (conv2deg(date.getMonth() + 1)) + "/" + conv2deg(date.getDate()) + " " + conv2deg(date.getHours()) + ":" + conv2deg(date.getMinutes());
+	date = (conv2deg(date.getMonth() + 1)) + "/" + conv2deg(date.getDate()) + " " + conv2deg(date.getHours()) + ":" + conv2deg(date.getMinutes())+ ":" + conv2deg(date.getSeconds());
 	return date;
 }
 
@@ -337,10 +337,14 @@ function run_key(event) {
 		
 	} else if (event.keyCode === $("input[name=setting_key_up]:checked").val() || event.charCode === $("input[name=setting_key_up]:checked").val()) {
 		
+	} else if (event.keyCode === KeyEvent.DOM_VK_ESCAPE || event.charCode === KeyEvent.DOM_VK_ESCAPE) {
+		$('#query').blur();
+	} else if ((event.keyCode === KeyEvent.DOM_VK_TAB || event.charCode === KeyEvent.DOM_VK_TAB  ) && !event.shiftKey) {
+		$('#query').val($('#query').val().substr(0, start) + TAB_SPACE + $('#query').val().substr(end));
+		//$('#query').selectionStart = $('#query').selectionEnd = start + TAB_SPACE.length;
+		//event.preventDefault();
 	}
 }
-
-
 
 // 整形ボタン処理
 function run_clean_query() {
@@ -572,16 +576,14 @@ function dbview_chk_toggle(id) {
 
 
 /*
-function sqlformat() {
-	my(var in) = @_;
-
+function queryformat(query) {
 	# 前の行につなげる単語
-	my(@line_continue) = qw(
+	array(line_continue) = qw(
 DISTINCT OF
 );
 
 	# 新しい行を開始する単語
-	my(@line_init) = qw(
+	array(line_init) = qw(
 SELECT FROM LEFT RIGHT INNER FULL CROSS WHERE
 GROUP HAVING ORDER UNION SET VALUES
 INSERT DELETE UPDATE
@@ -592,7 +594,7 @@ FOR
 );
 
 	# インデントをクリアする単語
-	my(@indent_init) = qw(
+	array(indent_init) = qw(
 SELECT FROM LEFT RIGHT INNER FULL CROSS WHERE
 GROUP HAVING ORDER UNION SET VALUES
 INSERT UPDATE DELETE
@@ -601,14 +603,14 @@ FOR
 );
 
 	# 現在行を終了する単語
-	my(@line_terminate) = qw(
+	array(line_terminate) = qw(
 SELECT DISTINCT INSERT UPDATE DELETE BY FROM
 WHERE
 AND OR
 );
 
 	# 次の行のインデントを増やす単語
-	my(@indent_plus) = qw(
+	array(indent_plus) = qw(
 SELECT FROM LEFT RIGHT INNER FULL CROSS WHERE
 GROUP HAVING ORDER UNION SET VALUES
 INSERT UPDATE DELETE
@@ -618,12 +620,12 @@ CASE
 );
 
 	# 次の行のインデントを減らす単語
-	my(@indent_minus) = qw(
+	array(indent_minus) = qw(
 END
 );
 
 	# 大文字にする単語
-	my(@capitalize) = qw(
+	array(capitalize) = qw(
 SELECT FROM LEFT RIGHT INNER FULL CROSS WHERE
 GROUP HAVING ORDER UNION SET VALUES
 INSERT UPDATE DELETE
@@ -635,90 +637,88 @@ AS JOIN THEN ASC DESC
 );
 
 	# 改行コードの統一
-	var in =~ s/\r\n/\n/g;
+	query =~ s/\r\n/\n/g;
 
 	# 空白の統一
-	var in =~ s/\t/ /g;
-	var in =~ s/ +/ /g;
+	query =~ s/\t/ /g;
+	query =~ s/ +/ /g;
 
 	# カンマの後に空白を入れて見やすくする
-	var in =~ s/,([^ ])/, var 1/g;
+	query =~ s/,([^ ])/, var 1/g;
 
 	# キーワードとカッコがつながっている場合は分離する
 	foreach (@capitalize) {
-		var in =~ s/\)(var _)/\) var 1/gi;
-		var in =~ s/\((var _)/\( var 1/gi;
-		var in =~ s/(var _)\(/var 1 \(/gi;
-		var in =~ s/(var _)\)/var 1 \)/gi;
+		query =~ s/\)(var _)/\) var 1/gi;
+		query =~ s/\((var _)/\( var 1/gi;
+		query =~ s/(var _)\(/var 1 \(/gi;
+		query =~ s/(var _)\)/var 1 \)/gi;
 	}
 
-	my (var out) = '';
-	my (var nest_level) = 0;
-	my (var indent) = 0;
-	my (var newline) = 1;
+	var ret = '';
+	var nest_level = 0;
+	var indent = 0;
+	var newline = 1;
 
-	foreach (split(/\n/, var in)) {
-		for my var word (split) {
-			if (scalar(grep {uc(var _) eq uc(var word)} @line_continue) > 0) {
-				if (substr(var out, length(var out) - 1) eq "\n") {
-					var out = substr(var out, 0, length(var out) - 1);
+	foreach (split(/\n/,query)) {
+		for my  word (split) {
+			if (scalar(grep {uc( _) eq uc( word)} line_continue) > 0) {
+				if (substr( out, length( out) - 1) eq "\n") {
+					 ret = substr( out, 0, length( out) - 1);
 				}
 
-			} elsif (scalar(grep {uc(var _) eq uc(var word)} @line_init) > 0) {
-				var out .= "\n" if (! var newline);
-				var newline = 1;
+			} elsif (scalar(grep {uc( _) eq uc( word)} line_init) > 0) {
+				 ret .= "\n" if (!  newline);
+				 newline = 1;
 			}
 
-			if (scalar(grep {uc(var _) eq uc(var word)} @indent_init) > 0) {
-				var indent = 0;
+			if (scalar(grep {uc( _) eq uc( word)} indent_init) > 0) {
+				 indent = 0;
 			}
 
-			if (var newline) {
-				var out .= indent_string(var nest_level + var indent);
-				var newline = 0;
+			if ( newline) {
+				 ret .= indent_string( nest_level +  indent);
+				 newline = 0;
 
 			} else {
-				var out .= " ";
+				 ret .= " ";
 			}
 
-			if (scalar(grep {uc(var _) eq uc(var word)} @capitalize) > 0) {
-				var out .= uc(var word);
+			if (scalar(grep {uc( _) eq uc( word)} capitalize) > 0) {
+				 ret .= uc( word);
 
 			} else {
-				var out .= var word;
+				 ret .=  word;
 			}
 
-			while (var word =~ /\(/g) {
-				var nest_level++;
+			while ( word =~ /\(/g) {
+				 nest_level++;
 			}
-			while (var word =~ /\)/g) {
-				var nest_level--;
-			}
-
-			if (var word =~ /,var / || scalar(grep {uc(var _) eq uc(var word)} @line_terminate) > 0) {
-				var out .= "\n";
-				var newline = 1;
+			while ( word =~ /\)/g) {
+				 nest_level--;
 			}
 
-			if (scalar(grep {uc(var _) eq uc(var word)} @indent_plus) > 0) {
-				var indent++;
+			if ( word =~ /, / || scalar(grep {uc( _) eq uc( word)} line_terminate) > 0) {
+				 ret .= "\n";
+				 newline = 1;
+			}
 
-			} elsif (scalar(grep {uc(var _) eq uc(var word)} @indent_minus) > 0) {
-				var indent--;
+			if (scalar(grep {uc( _) eq uc( word)} indent_plus) > 0) {
+				 indent++;
+
+			} elsif (scalar(grep {uc( _) eq uc( word)} indent_minus) > 0) {
+				 indent--;
 			}
 		}
 	}
-	return var out;
+	return out;
 }
 
-function indent_string() {
-	my(var i) = @_;
-
-	my var ind = '';
-	for (1..var i) {
-		var ind .= "\t";
+function indent_string(i) {
+	var ind = '';
+	for (1..i) {
+		ind .= "\t";
 	}
-	return var ind;
+	return ind;
 }
 */
 
