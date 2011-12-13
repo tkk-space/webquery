@@ -73,8 +73,9 @@ function key_radio_forms($id_name){
 				<tr>
 					<td style="text-align:right;">接続設定：</td>
 					<td>
+					
 					<select id="setting_connect_db" name="setting_connect_db" size="1" style=''onchange="create_refa();">
-						<option value="postgres" />Postgres</option>
+						<option value="pgsql" />Postgres</option>
 						<option value="mysql" />MySQL</option>
 						<option value="oracle" />Oracle</option>
 					</select>
@@ -84,7 +85,7 @@ function key_radio_forms($id_name){
 						<option name="char_code" onclick="" value="sjis" />Shift-JIS</option>
 						<option name="char_code" onclick="" value="euc-jp" />EUC-JP</option>
 					</select>
-
+					
 					<input id="setting_connect_name" name="setting_connect_name" size="20" type="text" value="" placeholder="接続名"/>
 					<input id="setting_connect_ip" name="setting_connect_ip" size="20" type="text" value="" placeholder="IP"/>
 					<input id="setting_connect_user" name="setting_connect_user" size="20" type="text" value="" placeholder="ユーザー名"/>
