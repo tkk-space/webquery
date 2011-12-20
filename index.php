@@ -7,6 +7,41 @@ function key_radio_forms($id_name){
 	}
 }
 
+function table_set_forms(){
+	$types=array('table'=>'r','view'=>'v','sequence'=>'s','index'=>'i');
+	foreach ($types as $key => $value) {
+		echo '<label><input type="checkbox" name="setting_tblsel_view_type[]" id="setting_tblsel_view_type_'.$value.'" onclick="ls_save(\'setting_tblsel_view_type_'.$value.'\');" value="'.$value.'" />'.$key.'</label>';
+	}
+}
+
+
+function refarence_set_forms(){
+	// 結果　0:通常  1:エラー  2:システム  3:作成  4:読込  5:更新  6削除
+	// リファレンス用背景色・メッセージ用背景色
+	$mes_colors = array('#fff', '#f00', '#fff', '#cfc', '#cff', '#fc9', '#fcc');
+	/*
+	$refa_name=array(
+		'tblsel'=>'表表示',
+		'rowup'=>'行更新',
+		'tblcre'=>'表作成',
+		'rowadd'=>'行作成',
+		'colcre'=>'列作成',
+		'dbcre'=>'DB作成',
+		'tbldel'=>'表削除',
+		'rowdel'=>'行削除',
+		'coldel'=>'列削除',
+		'dbdel'=>'DB削除'
+	);*/
+
+}
+
+function limitnum_set_forms(){
+	$numlist=array('30','50','100','200');
+	foreach($numlist as $num){
+		echo '<label><input type="radio" id="limit_num" name="limit_num" value="'.$num.'"  onchange="ls_save(\'limit_num\');" checked />'.$num.'</label>';
+	}
+	echo '<label><input type="radio" id="limit_num" name="limit_num" value=""  onchange="ls_save(\'limit_num\');" />無制限</label>';
+}
 ?>
 <html>
 <head>
@@ -51,16 +86,16 @@ function key_radio_forms($id_name){
 			[
 			<select id="refarence" name="refarence" size="1" style="" title="←接続パネルで選択して下さい" onchange="create_refa();">
 				<option value='' style="background:#FFF;">SQL生成</option>
-				<option value='refa_tblsel' style="background:#f93;">表表示</option>
-				<option value='refa_rowup'  style="background:#99f;">行更新</option>
+				<option value='refa_tblsel' style="background:#cff;">表表示</option>
+				<option value='refa_rowup'  style="background:#fc9;">行更新</option>
 				<option value='refa_tblcre' style="background:#9F9;">表作成</option>
 				<option value='refa_rowadd' style="background:#9F9;">行作成</option>
 				<option value='refa_colcre' style="background:#9F9;">列作成</option>
 				<option value='refa_dbcre'  style="background:#9F9;">DB作成</option>
-				<option value='refa_tbldel' style="background:pink;">表削除</option>
-				<option value='refa_rowdel' style="background:pink;">行削除</option>
-				<option value='refa_coldel' style="background:pink;">列削除</option>
-				<option value='refa_dbdel'  style="background:pink;">DB削除</option>
+				<option value='refa_tbldel' style="background:#fcc;">表削除</option>
+				<option value='refa_rowdel' style="background:#fcc;">行削除</option>
+				<option value='refa_coldel' style="background:#fcc;">列削除</option>
+				<option value='refa_dbdel'  style="background:#fcc;">DB削除</option>
 			</select>
 			]</span>
 			<a style="font-size:small;color:white;margin-right:5px;margin-left:5px;" href="javascript:void(0);" onclick="db_reload();">更新</a>
@@ -99,7 +134,6 @@ function key_radio_forms($id_name){
 				<tr>
 					<td style="text-align:right;">表示：</td>
 					<td>
-						<label><input type="checkbox" name="setting_view_tbl_list" id="setting_view_tbl_list" onchange="id_view('tbl_list');ls_save('setting_view_tbl_list');" value="1"/>テーブルリスト</label>
 						<label><input type="checkbox" name="setting_view_typeselect" id="setting_view_typeselect" onchange="id_view('tbl_type_select');ls_save('setting_view_typeselect');" value="1"/>テーブル種別セレクトボックス</label>
 						<label><input type="checkbox" name="setting_view_debug" id="setting_view_debug" onchange="id_view('debug_panel');ls_save('setting_view_debug');" value="1"/>デバッグパネル</label>
 					</td>
@@ -107,52 +141,24 @@ function key_radio_forms($id_name){
 				
 				<tr>
 					<td style="text-align:right;">テーブルリスト内容：</td>
-					<td>
-						<label><input type="checkbox" name="setting_tblsel_view_type[]" id="setting_tblsel_view_type_r" onclick="ls_save('setting_tblsel_view_type_r');" value="r" />TABLE</label>
-						<label><input type="checkbox" name="setting_tblsel_view_type[]" id="setting_tblsel_view_type_v" onclick="ls_save('setting_tblsel_view_type_v');" value="v" />VIEW</label>
-						<label><input type="checkbox" name="setting_tblsel_view_type[]" id="setting_tblsel_view_type_s" onclick="ls_save('setting_tblsel_view_type_s');" value="s" />SEQUENCE</label>
-						<label><input type="checkbox" name="setting_tblsel_view_type[]" id="setting_tblsel_view_type_i" onclick="ls_save('setting_tblsel_view_type_i');" value="i" />INDEX</label>
-						<label><input type="checkbox" name="setting_tblsel_view_type[]" id="setting_tblsel_view_type_sp" onclick="ls_save('setting_tblsel_view_type_sp');" value="S" />SPECIAL</label>
-					</td>
+					<td><?php table_set_forms();?></td>
 				</tr>
-				
-				<tr>
-					<td style="text-align:right;">接続ロック：</td>
-					<td>
-						<label><input type="radio" name="lock" onclick="set_lock();" value="none" checked/>なし</label>
-						<label><input type="radio" name="lock" onclick="set_lock();" value="host" />host</label>
-						<label><input type="radio" name="lock" onclick="set_lock();" value="db" />DB</label>
-					</td>
-				</tr>
-				<tr>
-					<td style="text-align:right;">実行：</td>
-					<td><?php key_radio_forms('setting_key_run');?></td>
-				</tr>
-				<tr>
-					<td style="text-align:right;">整形：</td>
-					<td><?php key_radio_forms('setting_key_crean');?></td>
-				</tr>
-				<tr>
-					<td style="text-align:right;">更新：</td>
-					<td><?php key_radio_forms('setting_key_update');?></td>
-				</tr>
-				<tr>
-					<td style="text-align:right;">↑：</td>
-					<td><?php key_radio_forms('setting_key_up');?></td>
-				</tr>
+				<?php
+				$key_forms_name=array('実行'=>'setting_key_run','整形'=>'setting_key_crean','更新'=>'setting_key_update','↑'=>'setting_key_up');
+				foreach($key_forms_name as $key=>$value){ ?>
+					<tr>
+						<td style="text-align:right;"><?php echo $key?>：</td>
+						<td><?php key_radio_forms($value);?></td>
+					</tr>
+				<?php } ?>
+
 				<tr>
 					<td style="text-align:right;">省略文字数：</td>
 					<td><input id="setting_value_limit" name="setting_value_limit" size="2" type="text" onchange="ls_save('setting_value_limit');" value="100"/></td>
 				</tr>
 				<tr>
 					<td style="text-align:right;">制限数：</td>
-					<td>
-						<label><input type="radio" id="limit_num" name="limit_num" value="30"  onchange="ls_save('limit_num');" checked />30</label>
-						<label><input type="radio" id="limit_num" name="limit_num" value="50"  onchange="ls_save('limit_num');" />50</label>
-						<label><input type="radio" id="limit_num" name="limit_num" value="100"  onchange="ls_save('limit_num');" />100</label>
-						<label><input type="radio" id="limit_num" name="limit_num" value="200"  onchange="ls_save('limit_num');" />200</label>
-						<label><input type="radio" id="limit_num" name="limit_num" value=""  onchange="ls_save('limit_num');" />無制限</label>
-					</td>
+					<td><?php limitnum_set_forms();?></td>
 				</tr>
 			</table>
 		</div>
@@ -165,7 +171,6 @@ function key_radio_forms($id_name){
 			<textarea type="text" style="width:100%;height:300px;font-size:x-small;" value="" id="postview" ></textarea>
 		</div>
 		
-
 		<!-- 実行パネル -->
 		<div id="control_panel" name="control_panel" style="background-color:#666;padding:5px;vertical-align: middle;">
 			<!-- クエリ入力ボックス -->
@@ -185,18 +190,15 @@ function key_radio_forms($id_name){
 		<div id="control_opt" name="control_opt"></div>
 		
 		<div id="result" style="background-color:#ccc;padding:3px;">
-			<!--<input type="button" value=" ↑ " id="run_edit" style="" onclick="query_edit();"/>-->
-			<code class="sql" style="font-size:small;">
-				<span id="syntax"></span>
-			</code>
+			<code class="sql" style="font-size:small;"><span id="syntax"></span></code>
 		</div>
 		
 		<!-- sql結果表示 -->
 		<div id="sql_panel" name="sql_panel" style="float:left; width:100%;">
-			<!-- ページャー部分 -->
+			<!-- オプション(ページャー)部分 -->
 			<div id="view_opt" name="view_opt"></div>
 			
-			<!-- sql内容テーブル -->
+			<!-- sql結果内容テーブル -->
 			<div id="db_viewer" style="float:left;"></div>
 		</div>
 	</form>
