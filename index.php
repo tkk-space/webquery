@@ -1,16 +1,22 @@
-﻿<?php
+<?php
 function key_radio_forms($id_name){
 	for($i=0;$i<7;$i++){
 		$key_code=$i+117;
 		$key_name='F'.(6+$i);
-		echo '<label><input type="radio" id="'.$id_name.'" name="'.$id_name.'" value="'.$key_code.'"  onchange="ls_save(\''.$id_name.'\');"  />'.$key_name.'</label>';
+		echo '<label>';
+		echo '<input type="radio" id="'.$id_name.'" name="'.$id_name.'" value="'.$key_code.'"  onchange="ls_save(\''.$id_name.'\');"  />'.$key_name;
+		echo '</label>';
 	}
 }
 
 function table_set_forms(){
-	$types=array('table'=>'r','view'=>'v','sequence'=>'s','index'=>'i');
+	$types=array('table'=>'r','view'=>'v','sequence'=>'S','index'=>'i');
 	foreach ($types as $key => $value) {
-		echo '<label><input type="checkbox" name="setting_tblsel_view_type[]" id="setting_tblsel_view_type_'.$value.'" onclick="ls_save(\'setting_tblsel_view_type_'.$value.'\');" value="'.$value.'" />'.$key.'</label>';
+		echo '<label><input type="checkbox" name="setting_tblsel_view_type[]"';
+		echo ' id="setting_tblsel_view_type_'.$value.'"';
+		echo ' onclick="ls_save(\'setting_tblsel_view_type_'.$value.'\'); tbl_type_change(\''.$value.'\')"';
+		echo ' value="'.$value.'" />'.$key;
+		echo '</label>';
 	}
 }
 
@@ -36,7 +42,7 @@ function refarence_set_forms(){
 }
 
 function limitnum_set_forms(){
-	$numlist=array('30','50','100','200');
+	$numlist=array('10','30','50','100','200');
 	foreach($numlist as $num){
 		echo '<label><input type="radio" id="limit_num" name="limit_num" value="'.$num.'"  onchange="ls_save(\'limit_num\');" checked />'.$num.'</label>';
 	}
@@ -72,9 +78,6 @@ function limitnum_set_forms(){
 				<option value="">DB一覧</option>
 			</select>
 			<span id="" style="font-size: small;">></span>
-			<select id="tbl_type_select" name="tbl_type_select" size="1" style="display:none;" type="text" onclick="" onchange="">
-				<option value="">種別</option>
-			</select>
 			<select id="tbl_select" title="括弧内のカウント数はバキューム等をしないと正確になりません" name="tbl_select" size="1" type="text" onclick="" onchange="run_tbl();">
 			<option value="">テーブル一覧</option>
 			</select>
@@ -99,6 +102,7 @@ function limitnum_set_forms(){
 			</select>
 			]</span>
 			<a style="font-size:small;color:white;margin-right:5px;margin-left:5px;" href="javascript:void(0);" onclick="db_reload();">更新</a>
+			<input id="reload_num" name="reload_num" type="hidden" value=""/>
 			<!--<span id="ip" style="margin-top:3px;float:right;font-size:small;vertical-align:middle;"></span>-->
 		</div>
 		
@@ -134,7 +138,6 @@ function limitnum_set_forms(){
 				<tr>
 					<td style="text-align:right;">表示：</td>
 					<td>
-						<label><input type="checkbox" name="setting_view_typeselect" id="setting_view_typeselect" onchange="id_view('tbl_type_select');ls_save('setting_view_typeselect');" value="1"/>テーブル種別セレクトボックス</label>
 						<label><input type="checkbox" name="setting_view_debug" id="setting_view_debug" onchange="id_view('debug_panel');ls_save('setting_view_debug');" value="1"/>デバッグパネル</label>
 					</td>
 				</tr>

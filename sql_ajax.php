@@ -14,54 +14,70 @@ $setting=array(
 
 $dsn=create_dsn($setting);
 
-//$DB=pg_connect($dsn) or error_print('データベース接続エラー(.'.$_POST["setting_connect_name"].'.)',$dsn);
-$DB = new PDO($dsn) or error_print('データベース接続エラー(.'.$_POST["setting_connect_name"].'.)',$dsn);;
+$DB = new PDO($dsn) or error_print('データベース接続エラー(.'.$_POST["setting_connect_name"].'.)',$dsn);
 
 $sqlx='SELECT * FROM '.$_POST["tbl_select"];
-$sqlx_limit=$sqlx.create_query_limit();
+$sqlx_limit = $sqlx.create_query_limit();
 
 if($_POST["type"] == "db_option"){
-	$html[0]=db_option($DB);
+	$html[0] = db_option($DB);
 	$mes='DBに接続しました';
 }else if($_POST["type"] == "tbl_option"){
 	$html[0] =tbl_option($DB);
 	$mes='DBを選択しました';
 }else if($_POST["type"] == "db_view"){
-	$html[0]=table_naiyo($DB,$sqlx_limit);
-	$html[1]=pager_create($DB,$sqlx);
-	$html[2]=col_option($DB,$sqlx);
+	$col_dat=get_column_data($DB,$sqlx_limit);
+	
+	$html[0] = table_naiyo($DB,$sqlx_limit,$col_dat);
+	$html[1] = pager_create($DB,$sqlx);
+	$html[2] = col_option($col_dat);
 	$mes='テーブルを表示しました';
 }else if($_POST["type"] == 'query_run'){
-	$sqlx=$_POST["query"];
+	$sqlx=preg_replace("/\\\'/i","'",$_POST["query"]);
+	
 	if(preg_match("/^[\s]*SELECT/i",$sqlx)){
-		$html[0].=table_naiyo($DB,$sqlx);
-		$html[1].=pager_create($DB,$sqlx);
+		$html[0] = table_naiyo($DB,$sqlx);
+		$html[1] = pager_create($DB,$sqlx);
 	}else{
-		run_sql_query($DB,$sqlx);
+		run_sql_query($DB,$sqlx,'query_run');
 		$html[0].="実行しました<br><font color=\"#ff0000\">$sqlx</font><br>";
 	}
 	$mes='クエリを実行しました';
 }else if($_POST["type"] == 'reload'){
-	$html[0]=db_option($DB);
-	$html[1]=tbl_option($DB,$sqlx_limit);
-	$html[2]=col_option($DB,$sqlx_limit);
-	$html[3]=table_naiyo($DB,$sqlx_limit);
-	$html[4]=pager_create($DB,$sqlx);
+	if ($_POST["reload_num"] == 1){
+		$html[0]=db_option($DB);
+	}else if($_POST["reload_num"] == 2){
+		$html[0]=db_option($DB);
+		$html[1]=tbl_option($DB,$sqlx_limit);
+		break;
+	}else if($_POST["reload_num"] == 3){
+		$col_dat=get_column_data($DB,$sqlx_limit);
+		$html[0]=db_option($DB);
+		$html[1]=tbl_option($DB,$sqlx_limit);
+		$html[2]=col_option($col_dat);
+	}
+	
 	$mes='更新しました ';
 }else if($_POST["type"] == 'diff'){
 	$mes='比較しました ';
-}else{
-	error_print("タイプ実行エラー：".$_POST["type"],'');
 }
 
 // 結果表示
-if($mes){
-	$result=array_merge(array(mes_csv($mes,$sqlx)),$html);
-	print result_print($result);
+if($_POST["type"] == 'query_run'){
+	$sqlx_mes=$sqlx;
+} else if($_POST["type"] == 'db_view'){
+	$sqlx_mes=$sqlx_limit;
+} else {
+	$sqlx_mes='';
 }
 
-//$pdb->finish();
-//$DB->disconnect;
+$result=array_merge(array(mes_csv($mes,$sqlx_mes)),$html);
+print result_print($result);
+
+$DB->disconnect;
+
+
+
 
 function create_query_limit(){
 	$qr_limit='';
@@ -101,7 +117,7 @@ function create_input($type,$value,$name,$other){
 
 // カウント・ページ数の計算
 function page_cnt($DB,$tbl_query){
-	$pdb=run_sql_query($DB,$tbl_query);
+	$pdb=run_sql_query($DB,$tbl_query,'page_cnt');
 	$rows=$pdb->rowcount();
 	$page_num=ceil($rows/$_POST["limit_num"]);
 	$html_option_pages='';
@@ -117,10 +133,9 @@ function page_cnt($DB,$tbl_query){
 //DBを表示
 function db_option($DB) {
 	$db_sqlx="SELECT datname FROM pg_database WHERE datname NOT IN ('template0','template1') ORDER BY datname;";
-	$datname=$DB->query($db_sqlx) or die(error_print('データベース実行エラー('.$_POST["type"].')：'.pg_last_error($DB),$db_sqlx)); 
-
+	$pdb=run_sql_query($DB,$db_sqlx,'db_option');
 	$db_opt_html='<option value=""></option>';
-	while($row=$datname->fetch()){
+	while($row=$pdb->fetch()){
 		$selected='';
 		if($_POST["db_select"] == $row['datname']){ $selected="selected"; }
 		$db_opt_html.='<option value="'.$row['datname'].'" '.$selected.'>'.$row['datname'].'</option>';
@@ -130,71 +145,68 @@ function db_option($DB) {
 
 function tbl_option($DB) {
 	$tbl_sqlx = get_tbl_query();
-	$pdb=$DB->query($tbl_sqlx) or error_print("データベース実行エラー(".$_POST["type"].")：".pg_last_error($DB),$tbl_sqlx);
+	$pdb=run_sql_query($DB,$tbl_sqlx,'tbl_option');
+	
 	$type_rows=array();
-	$typ_color = array('r'=>'#FFF','v'=>'#AFA','i'=>'#c9c' ,'s'=>'#9cc'    );
-	$typ_name  = array('r'=>'TABLE','v'=>'VIEW','i'=>'INDEX','s'=>'SEQUENCE');
+	$typ_color = array('r'=>'#FFF','v'=>'#AFA','i'=>'#c9c' ,'S'=>'#9cc'    );
+	$typ_name  = array('r'=>'TABLE','v'=>'VIEW','i'=>'INDEX','S'=>'SEQUENCE');
 	$form_types=$_POST["setting_tblsel_view_type"];
 	
 	// テーブルのオプション表示
 	$tbl_opt_html='<option value=""></option>';
 	while($db_ary=$pdb->fetch()){
+		$disabled='';
+		$disp='';
 		$type_rows[$db_ary[1]]++;
-		if(in_array($db_ary[1],$form_types)){
-			$selected='';
-			if($_POST["tbl_select"] == $db_ary[0]){ $selected="selected"; }
-			// テーブル以外の場合タイプ名を右につける
-			if($db_ary['relkind']!='r'){ $db_ary['rows']=$db_ary['relkind']; }
-			$tbl_opt_html.='<option style="background:'.$typ_color[$db_ary['relkind']].';"  type="'.$db_ary['relkind'].'" value="'.$db_ary['relname'].'" '.$selected.'>'.$db_ary['relname'].'   ('.$db_ary['rows'].')</option>';
-		}
+		if(!in_array($db_ary[1],$form_types)){ $disp='none';$disabled='disabled="disabled";'; }
+		$selected='';
+		if($_POST["tbl_select"] == $db_ary[0]){ $selected="selected"; }
+		// テーブル以外の場合タイプ名を右につける
+		if($db_ary['relkind']!='r'){ $db_ary['rows']=$db_ary['relkind']; }
+		$tbl_opt_html.='<option '.$disabled.' style="display:'.$disp.'; background:'.$typ_color[$db_ary['relkind']].';"  type="'.$db_ary['relkind'].'" value="'.$db_ary['relname'].'" '.$selected.'>'.$db_ary['relname'].'   ('.$db_ary['rows'].')</option>';
 	}
-	
-	// テーブル種別セレクトボックス
-	$tbl_typ_opt_html='<option></option>';
-	foreach($type_rows as $type){
-		if($type_rows[$type] > 0){
-			$tbl_typ_opt_html.='<option value="'.$type.'"> '.$tbl_typ_opt_name[$type].' ('.$type_rows[$type].')</option>';
-		}
-	}
-	
-	//return array($tbl_opt_html,$tbl_typ_opt_html);
 	return $tbl_opt_html;
 }
 
-//列名の取得
-function col_option($DB,$col_sqlx){
-	$pdb=run_sql_query($DB,$col_sqlx);
-	$num = $pdb->fetch(PDO::FETCH_ASSOC);
-	$col_html.= "<option></option>";
-	for($i=0;$i<count($num);$i++){
-		$field = $pdb->getColumnMeta($i);
-		$selected=($_POST["col_select"] == $field['name'])?"selected":'';
-		//if($field['len']>0){ $len_str='['.$field['len'].']'; }
-		$col_html.='<option value="'.$field['name'].'" '.$selected.'>'.$field['name'].' ('.$field['native_type'].')</option>';
+// カラムデータの取得
+function get_column_data($DB,$col_sqlx){
+	$ret=array();
+	$pdb=run_sql_query($DB,$col_sqlx,'get_column_data');
+	$i = 0;
+	while ($column = $pdb->getColumnMeta($i)) {
+		$ret[$i]['name']=$column['name'];
+		$ret[$i]['native_type']=$column['native_type'];
+		$ret[$i]['len']=$column['len'];
+		$i++;
 	}
+	$ret['total_num']=$i;
+	return $ret;
+}
 
+//列名セレクトボックスの作成
+function col_option($col_dat){
+	$col_html.= "<option></option>";
+	for($i=0;$i<$col_dat['total_num'];$i++){
+		$selected=($_POST["col_select"] == $col_dat[$i]['name'])?"selected":'';
+		$col_html.='<option value="'.$col_dat[$i]['name'].'" '.$selected.'>'.$col_dat[$i]['name'].' ('.$col_dat[$i]['native_type'].')</option>';
+	}
 	return $col_html;
 }
 
 // テーブル内容のテーブルHTML作成
-function table_naiyo($DB,$tbl_naiyo_sqlx){
-	$pdb1=run_sql_query($DB,$tbl_naiyo_sqlx);
+function table_naiyo($DB,$tbl_naiyo_sqlx,$col_dat){
 	$html_table_naiyo='<table cellpadding="1" cellspacing="0" border="1" style="border-width:1px;border-color:#ccc; font-size:small">';
-	$num = $pdb1->fetch(PDO::FETCH_ASSOC);
-	
 	// テーブル最初の行 フィールド名
 	$html_table_naiyo.='<tr bgcolor="#333" style="color:#fff;"><td><input type="checkbox"></td>';
-	$col_html.= "<option></option>";
-	for($i=0;$i<count($num);$i++){
-		$field = $pdb1->getColumnMeta($i);
+	for($i=0;$i<$col_dat['total_num'];$i++){
 		$type='';
-		$selected=($_POST["col_select"] == $field['name'])?"selected":'';
-		$html_table_naiyo.='<td><a  href="javascript:void(0);" onclick="add_order(\''.$field['name'].'\');" style="color:#fff" title="">'.$field['name'].'</td>';
+		$selected=($_POST["col_select"] == $col_dat[$i]['name'])?"selected":'';
+		$html_table_naiyo.='<td><a  href="javascript:void(0);" onclick="add_order(\''.$col_dat[$i]['name'].'\');" style="color:#fff" title="">'.$col_dat[$i]['name'].'</td>';
 	}
 	$html_table_naiyo.='</tr>';
 	
 	// テーブル中身 交互に色変え
-	$pdb=run_sql_query($DB,$tbl_naiyo_sqlx);
+	$pdb=run_sql_query($DB,$tbl_naiyo_sqlx,'table_naiyo');
 	$t=0;
 	while($data=$pdb->fetch(PDO::FETCH_ASSOC)){
 		$tr_back=($t%2==0)?"fff":"ddd";
@@ -251,13 +263,13 @@ function error_alert($mes){
 }
 
 function error_print($mes,$sqlx){
-	#区切り文字を入れて200 OKとかの奴を最後にもっていく
+	// 区切り文字を入れて200 OKとかの奴を最後にもっていく
 	$result=array(mes_csv($mes,$sqlx),'','','','','');
 	die(result_print($result));
 }
 
-# 返す文字列（<##!##>が区切り文字）
-# メッセージCSV<##!##>表示されるHTML1<##!##>HTML2..3..
+// 返す文字列（<##!##>が区切り文字）
+// メッセージCSV<##!##>表示されるHTML1<##!##>HTML2..3..
 function result_print($ary){
 	//$ary = @{shift()};
 	$sep='<##!##>';
@@ -268,8 +280,8 @@ function result_print($ary){
 	return $print_str;
 }
 
-function run_sql_query($DB,$sqlx){
-	$pdb=$DB->query($sqlx) or error_print("データベース実行エラー(".$_POST["type"].")：".error_disp($DB->errorInfo()),$sqlx);
+function run_sql_query($DB,$sqlx,$err_mes=''){
+	$pdb=$DB->query($sqlx) or error_print("データベース実行エラー(".$err_mes.")：".error_disp($DB->errorInfo(),$sqlx),$sqlx);
 	return $pdb;
 }
 
@@ -434,8 +446,8 @@ function get_tbl_info_query($table_name){
 	return $query;
 }
 
-function error_disp($errinfo){
-	return $errinfo[2];
+function error_disp($errinfo,$sqlx){
+	return $errinfo[2].' SQL内容:['.$sqlx.']';
 }
 
 function create_dsn($setting){

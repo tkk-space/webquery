@@ -429,13 +429,29 @@ function run_clean_query() {
 
 // 更新ボタン処理
 function db_reload() {
-	run_ajax('reload', 'db_select,tbl_select,tbl_type_select,col_select,db_viewer,view_opt');
+	var i = 0;
+	var ids = '';
+	if ($('#ip_select').val() !== '') {
+		i++;
+		ids = 'db_select';
+		if ($('#db_select').val() !== '') {
+			i++;
+			ids += ',tbl_select';
+			if ($('#tbl_select').val() !== '') {
+				i++;
+				ids += ',col_select';
+			}
+		}
+	}
+	
+	$('#reload_num').val(i);
+	run_ajax('reload', ids);
 }
 
 
 // DB切り替え時
 function run_db() {
-	run_ajax('tbl_option', 'tbl_select,tbl_type_select');
+	run_ajax('tbl_option', 'tbl_select');
 	ls_save_html('db_select');
 }
 
@@ -639,6 +655,10 @@ function history_read() {
 
 }
 
+// テーブル種類チェックボックスの変更
+function tbl_type_change() {
+	
+}
 
 // 初期化処理
 $(document).ready(function () {
