@@ -7,6 +7,10 @@
 クエリ発行などの基本的な操作などが可能となっています。
 
 
+The DB developer tools.
+
+Making it possible to issue such basic operations such as queries.
+
 使い方
 ---
 
@@ -15,10 +19,6 @@ webサーバーにフォルダごといれてアクセスして下さい。
 そのパネルからIP等を入力し、追加ボタンを押して下さい。
 モダンブラウザ推奨、DBはpostgresのみに対応しています。
 
-
-The DB developer tools.
-
-Making it possible to issue such basic operations such as queries.
 
 
 How to use
