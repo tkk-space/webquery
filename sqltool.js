@@ -224,7 +224,7 @@ function ls_clear(id) {
 
 // 結果　0:通常  1:エラー  2:システム  3:作成  4:読込  5:更新  6削除
 // リファレンス用背景色・メッセージ用背景色
-var mes_colors = ['#fff', '#f00', '#fff', '#cfc', '#cff', '#fc9', '#fcc'];
+var mes_colors = ['#fff', '#faa', '#fff', '#cfc', '#cff', '#fc9', '#fcc'];
 
 // ajax処理
 function run_ajax(type, result_id, post_add) {
@@ -259,10 +259,10 @@ function run_ajax(type, result_id, post_add) {
 			// CSV:日付,info,メッセージ,クエリ
 			var ret = html.split('<##!##>');
 			if (ret.length > 1) {
-				// 色設定
-				var mes_color = mes_colors[0];
 				var mes_csv = (String)(ret[0]).split(',');
 				
+				// 色設定
+				var mes_color = mes_colors[mes_csv[4]];
 				var history_sql_val = text_clean(mes_csv[3].replace(/\'/g, "\\'"));
 				var history_sql = (mes_csv[3].length > 40)?mes_csv[3].substring(0, 40) + '...':mes_csv[3];
 				

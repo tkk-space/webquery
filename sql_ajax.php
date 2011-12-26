@@ -74,9 +74,6 @@ print result_print($result);
 
 $DB->disconnect;
 
-
-
-
 function create_query_limit(){
 	$qr_limit='';
 	if((int)$_POST["limit_num"] > 0 && (int)$_POST["page_select"] > 0){
@@ -130,7 +127,7 @@ function page_cnt($DB,$tbl_query){
 
 //DBを表示
 function db_option($DB) {
-	$db_sqlx="SELECT datname FROM pg_database WHERE datname NOT IN ('template0','template1') ORDER BY datname;";
+	$db_sqlx=get_db_query();
 	$pdb=run_sql_query($DB,$db_sqlx,'db_option');
 	$db_opt_html='<option value=""></option>';
 	while($row=$pdb->fetch()){
@@ -143,7 +140,7 @@ function db_option($DB) {
 
 function tbl_option($DB) {
 	$tbl_sqlx = get_tbl_query();
-	$pdb=run_sql_query($DB,$tbl_sqlx,'tbl_option');
+	$pdb=run_sql_query($DB,$tbl_sqlx,$tbl_sqlx);
 	
 	$type_rows=array();
 	$typ_color = array('r'=>'#FFF','v'=>'#AFA','i'=>'#c9c' ,'S'=>'#9cc'    );
@@ -240,13 +237,14 @@ function mes_info(){
 	return $mes_info;
 }
 
-function mes_csv($mes,$sqlx_csv){
+function mes_csv($mes,$sqlx_csv,$code=0){
 	$mes_csv='';
 	$mes_ary=array();
 	$mes_ary[0] = date("Y/m/d(D) H:i:s");
 	$mes_ary[1] = $mes;
 	$mes_ary[2] = mes_info();
-	$mes_ary[3] = $sqlx_csv;
+	$mes_ary[3] = $sqlx_csv;	
+	$mes_ary[4] = $code;	
 	
 	for($i=0;$i<count($mes_ary);$i++){
 		$mes_csv.=$mes_ary[$i].',';
@@ -255,14 +253,14 @@ function mes_csv($mes,$sqlx_csv){
 }
 
 // わざとエラーを起こして画面上に表示
-function error_alert($mes){
+function alert($mes){
 	print $mes; 
 	exit;
 }
 
-function error_print($mes,$sqlx){
+function error_print($mes,$sqlx,$code){
 	// 区切り文字を入れて200 OKとかの奴を最後にもっていく
-	$result=array(mes_csv($mes,$sqlx),'','','','','');
+	$result=array(mes_csv($mes,$sqlx,1),'','','','','');
 	die(result_print($result));
 }
 
@@ -279,7 +277,7 @@ function result_print($ary){
 }
 
 function run_sql_query($DB,$sqlx,$err_mes=''){
-	$pdb=$DB->query($sqlx) or error_print("データベース実行エラー(".$err_mes.")：".error_disp($DB->errorInfo(),$sqlx),$sqlx);
+	$pdb=$DB->query($sqlx) or error_print("データベース実行エラー(".$err_mes.")：".error_disp($DB->errorInfo(),$sqlx),$sqlx,0);
 	return $pdb;
 }
 
@@ -410,16 +408,37 @@ function gethashs($db,$sqlx){
 	return $fd;
 }
 
+function error_disp($errinfo,$sqlx){
+	return $errinfo[2].' SQL内容:['.$sqlx.']';
+}
+
+function create_dsn($setting){
+	$dsn=$setting["dbtype"].':';
+	$dsn.='host='.$setting["ip"];
+	$dsn.=($setting["db"] != '' && $setting["db"] != 'reading...')?' dbname='.$setting["db"]:'';
+	$dsn.=($setting["user"])?' user='.$setting["user"]:'';
+	$dsn.=($setting["pass"])?' password='.$setting["pass"]:'';
+	//$dsn.=($setting["port"])?$dsn.=' port='.$setting["port"]:' port=5432';
+	$dsn.=($setting["timeout"])?' connect_timeout='.$setting["timeout"]:'';
+	return $dsn;
+}
+
+function get_db_query(){
+	$query="SELECT datname FROM pg_database WHERE datname NOT IN ('template0','template1') ORDER BY datname;";
+	return $query;
+}
+
 function get_tbl_query(){
 	$query="
-		SELECT c.relname,c.relkind,reltuples as rows
+		SELECT c.relname,c.relkind,reltuples as rows,pg_relation_size(relname::regclass)
 		FROM pg_catalog.pg_class c
 		JOIN pg_catalog.pg_roles r ON r.oid = c.relowner
 		LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-		WHERE n.nspname NOT IN ('pg_catalog', 'pg_toast') 
-		AND pg_catalog.pg_table_is_visible(c.oid)
+		WHERE n.nspname NOT IN ('pg_catalog', 'pg_toast') AND 
+		pg_catalog.pg_table_is_visible(c.oid)
 		ORDER BY relkind, relname;
 ";
+	//alert($query);
 	return $query;
 }
 
@@ -443,21 +462,5 @@ function get_tbl_info_query($table_name){
 
 	return $query;
 }
-
-function error_disp($errinfo,$sqlx){
-	return $errinfo[2].' SQL内容:['.$sqlx.']';
-}
-
-function create_dsn($setting){
-	$dsn=$setting["dbtype"].':';
-	$dsn.='host='.$setting["ip"];
-	$dsn.=($setting["db"] != '' && $setting["db"] != 'reading...')?' dbname='.$setting["db"]:'';
-	$dsn.=($setting["user"])?' user='.$setting["user"]:'';
-	$dsn.=($setting["pass"])?' password='.$setting["pass"]:'';
-	//$dsn.=($setting["port"])?$dsn.=' port='.$setting["port"]:' port=5432';
-	$dsn.=($setting["timeout"])?' connect_timeout='.$setting["timeout"]:'';
-	return $dsn;
-}
-
 
 ?>
