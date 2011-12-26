@@ -55,34 +55,13 @@ function indent_string(i) {
 
 // クエリ整形
 function query_clean(value) {
+	alert('作成中');
+	return value;
 
-	/*
-	value = value.replace(/\r\n/gi, "");
-	value = value.replace(/\n/gi , "");
-	value = value.replace(/\t/gi , " ");
-	value = value.replace(/\s+/gi , " ");
-	value = value.replace(/\(\s+[SELECT]/gi , "\n(\n\tSELECT");
-	value = value.replace(/^[count|using]\(/gi , "\n(");
-	value = value.replace(/\)\s+([^as])/gi , ")\n $1");
-	value = value.replace(/(\s+SELECT|^SELECT)\s+/gi , "SELECT \n\t");
-	value = value.replace(/(\s+UPDATE|^UPDATE)\s+/gi , "UPDATE \n\t");
-	value = value.replace(/(\s+INSERT|^INSERT)\s+/gi , "INSERT \n\t");
-	value = value.replace(/(\s+DELETE|^DELETE)\s+/gi , "DELETE \n\t");
-	value = value.replace(/\s+FROM\s+/gi , " \nFROM \n\t");
-	value = value.replace(/\s+WHERE\s+/gi , " \nWHERE \n\t");
-	value = value.replace(/\s+ORDER\s+BY\s+/gi , " \nORDER BY \n\t");
-	value = value.replace(/\s+GROUP\s+BY\s+/gi , " \nGROUP BY \n\t");
-	value = value.replace(/\s+LEFT\s+OUTER\s+JOIN\s+/gi , " \nLEFT OUTER JOIN \n\t");
-	value = value.replace(/\s+LEFT\s+JOIN\s+/gi , " \nLEFT JOIN \n\t");
-	value = value.replace(/\s+RIGHT\s+OUTER\s+JOIN\s+/gi , " \nRIGHT OUTER JOIN \n\t");
-	value = value.replace(/\s+RIGHT\s+JOIN\s+/gi , " \nRIGHT JOIN \n\t");
-	value = value.replace(/\s+AND\s+/gi , " \nAND\t");
-	value = value.replace(/\s+OR\s+/gi , " \nOR\t");
-	value = value.replace(/^\s*\n$^/gi , "");
-	*/
 	//value = value.replace(/\s*,\s*/g," \n\t, ");
 	//value = value.replace(/\s+AS\s+/g,"\t\tAS ");
 	// 前の行につなげる単語
+	/*
 	var line_continue = ['DISTINCT', 'OF'];
 
 	// 新しい行を開始する単語
@@ -187,6 +166,7 @@ function query_clean(value) {
 	}
 	
 	return ret;
+	*/
 }
 
 //------------------- ローカルストレージ用関数 ------------///
@@ -394,25 +374,6 @@ function connect_save() {
 }
 
 
-// クエリ内キーボード操作
-function run_key(event) {
-	if (event.keyCode === $("input[name=setting_key_run]:checked").val() || event.charCode === $("input[name=setting_key_run]:checked").val()) {
-		
-	} else if (event.keyCode === $("input[name=setting_key_clean]:checked").val() || event.charCode === $("input[name=setting_key_clean]:checked").val()) {
-		
-	} else if (event.keyCode === $("input[name=setting_key_update]:checked").val() || event.charCode === $("input[name=setting_key_update]:checked").val()) {
-		
-	} else if (event.keyCode === $("input[name=setting_key_up]:checked").val() || event.charCode === $("input[name=setting_key_up]:checked").val()) {
-		
-	} else if (event.keyCode === KeyEvent.DOM_VK_ESCAPE || event.charCode === KeyEvent.DOM_VK_ESCAPE) {
-		$('#query').blur();
-	} else if ((event.keyCode === KeyEvent.DOM_VK_TAB || event.charCode === KeyEvent.DOM_VK_TAB) && !event.shiftKey) {
-		$('#query').val($('#query').val().substr(0, start) + TAB_SPACE + $('#query').val().substr(end));
-		//$('#query').selectionStart = $('#query').selectionEnd = start + TAB_SPACE.length;
-		//event.preventDefault();
-	}
-}
-
 // 整形ボタン処理
 function run_clean_query() {
 	//var new_val = query_clean(text_clean($('#query').val()));
@@ -428,7 +389,7 @@ function run_clean_query() {
 
 
 // 更新ボタン処理
-function db_reload() {
+function run_reload() {
 	var i = 0;
 	var ids = '';
 	if ($('#ip_select').val() !== '') {
@@ -448,6 +409,25 @@ function db_reload() {
 	run_ajax('reload', ids);
 }
 
+
+// クエリ内キーボード操作
+function run_key(event) {
+	//alert(event.keyCode);
+	//alert($("input[name=setting_key_run]:checked").val());
+	if (event.keyCode == $("input[name=setting_key_run]:checked").val() || event.charCode == $("input[name=setting_key_run]:checked").val()) {
+		run_query();
+	} else if (event.keyCode == $("input[name=setting_key_clean]:checked").val() || event.charCode == $("input[name=setting_key_clean]:checked").val()) {
+		run_clean_query();
+	} else if (event.keyCode == $("input[name=setting_key_update]:checked").val() || event.charCode == $("input[name=setting_key_update]:checked").val()) {
+		run_reload();
+	} else if (event.keyCode == KeyEvent.DOM_VK_ESCAPE || event.charCode == KeyEvent.DOM_VK_ESCAPE) {
+		$('#query').blur();
+	} else if ((event.keyCode == KeyEvent.DOM_VK_TAB || event.charCode == KeyEvent.DOM_VK_TAB) && !event.shiftKey) {
+		$('#query').val($('#query').val().substr(0, start) + TAB_SPACE + $('#query').val().substr(end));
+		//$('#query').selectionStart = $('#query').selectionEnd = start + TAB_SPACE.length;
+		//event.preventDefault();
+	}
+}
 
 // DB切り替え時
 function run_db() {
@@ -487,9 +467,9 @@ function create_refa() {
 	var db_name = $('#db_select').val();
 	var limit_num = $('#limit_num').val();
 	var col_name = $('#col_select').val();
-	var col_type = '';
-	var col_names = '';	
-	var col_types = '';
+	var col_type = ' ';
+	var col_names = ' ';
+	var col_types = ' ';
 	
 	// 列選択されていた場合
 	if (col_name !== '') {
@@ -500,7 +480,9 @@ function create_refa() {
 	}
 	
 	//括弧内の文字列を取る
-	col_type = col_type.replace(/(.*\()(.*)(\).*$)/, "$2");
+	if (col_type) {
+		col_type = col_type.replace(/(.*\()(.*)(\).*$)/, "$2");
+	}
 	
 	$('#col_select').find('option').each(function () { 
 		col_names += $(this).val() + ',';
@@ -520,6 +502,18 @@ function create_refa() {
 	}
 	create_values = create_values.replace(/,[ ]*$/, "").replace(/^[ ]*\,/, "");
 	
+	// テーブルリストのタイプを調べる
+	var table_type = $('#tbl_select option:selected').attr('type');
+	var table_type_name = ' TABLE ';
+	
+	if (table_type === 'v') {
+		table_type_name = ' VIEW ';
+	} else if (table_type === 'S') {
+		table_type_name = ' SEQUENCE ';
+	} else if (table_type === 'i') {
+		table_type_name = ' INDEX ';
+	}
+	
 	if (type === 'refa_tblsel') {
 		refa = 'SELECT * FROM ' + table_name + ' WHERE ' + col_name + '=\'\';';
 	} else if (type === 'refa_rowadd') {
@@ -529,11 +523,11 @@ function create_refa() {
 	} else if (type === 'refa_rowdel') {
 		refa = "DELETE FROM " + table_name + " WHERE " + col_name + " ='';";
 	} else if (type === 'refa_colcre') {
-		refa = "ALTER TABLE " + table_name + " ADD " + col_name + " " + col_type + ";";
+		refa = "ALTER " + table_type_name + table_name + " ADD " + col_name + " " + col_type + ";";
 	} else if (type === 'refa_coldel') {
-		refa = "ALTER TABLE " + table_name + " DROP " + col_name + ";";
+		refa = "ALTER " + table_type_name + table_name + " DROP " + col_name + ";";
 	} else if (type === 'refa_tblcre') {
-		refa = "CREATE TABLE " + table_name + " (" + create_values + ");";
+		refa = "CREATE " + table_type_name + table_name + " (" + create_values + ");";
 	} else if (type === 'refa_tbldel') {
 		refa = "DROP TABLE " + table_name + ";";
 	} else if (type === 'refa_dbcre') {
@@ -656,8 +650,19 @@ function history_read() {
 }
 
 // テーブル種類チェックボックスの変更
-function tbl_type_change() {
-	
+function tbl_type_change(type) {
+	var checked = $('#setting_tblsel_view_type_' + type).attr('checked');
+	$('#tbl_select option').each(function () {
+		if ($(this).attr('type') == type) {
+			if (checked) {
+				$(this).removeAttr('disabled');
+				$(this).css('display', 'block');
+			} else {
+				$(this).attr('disabled', 'disabled');
+				$(this).css('display', 'none');
+			}
+		}
+	});
 }
 
 // 初期化処理

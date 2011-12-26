@@ -36,7 +36,8 @@ if($_POST["type"] == "db_option"){
 	$sqlx=preg_replace("/\\\'/i","'",$_POST["query"]);
 	
 	if(preg_match("/^[\s]*SELECT/i",$sqlx)){
-		$html[0] = table_naiyo($DB,$sqlx);
+		$col_dat=get_column_data($DB,$sqlx);
+		$html[0] = table_naiyo($DB,$sqlx,$col_dat);
 		$html[1] = pager_create($DB,$sqlx);
 	}else{
 		run_sql_query($DB,$sqlx,'query_run');
@@ -44,19 +45,16 @@ if($_POST["type"] == "db_option"){
 	}
 	$mes='クエリを実行しました';
 }else if($_POST["type"] == 'reload'){
-	if ($_POST["reload_num"] == 1){
+	if($_POST["reload_num"] > 1){
 		$html[0]=db_option($DB);
-	}else if($_POST["reload_num"] == 2){
-		$html[0]=db_option($DB);
+	}
+	if($_POST["reload_num"] > 2){
 		$html[1]=tbl_option($DB,$sqlx_limit);
-		break;
-	}else if($_POST["reload_num"] == 3){
+	}
+	if($_POST["reload_num"] > 3){
 		$col_dat=get_column_data($DB,$sqlx_limit);
-		$html[0]=db_option($DB);
-		$html[1]=tbl_option($DB,$sqlx_limit);
 		$html[2]=col_option($col_dat);
 	}
-	
 	$mes='更新しました ';
 }else if($_POST["type"] == 'diff'){
 	$mes='比較しました ';

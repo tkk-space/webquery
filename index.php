@@ -10,12 +10,13 @@ function key_radio_forms($id_name){
 }
 
 function table_set_forms(){
-	$types=array('table'=>'r','view'=>'v','sequence'=>'S','index'=>'i');
+	$types=array('r'=>'table','v'=>'view','S'=>'sequence','i'=>'index');
 	foreach ($types as $key => $value) {
+		$checked=($key=='r')?'checked':'';
 		echo '<label><input type="checkbox" name="setting_tblsel_view_type[]"';
-		echo ' id="setting_tblsel_view_type_'.$value.'"';
-		echo ' onclick="ls_save(\'setting_tblsel_view_type_'.$value.'\'); tbl_type_change(\''.$value.'\')"';
-		echo ' value="'.$value.'" />'.$key;
+		echo ' id="setting_tblsel_view_type_'.$key.'"';
+		echo ' onclick="ls_save(\'setting_tblsel_view_type_'.$key.'\'); tbl_type_change(\''.$key.'\')"';
+		echo ' value="'.$key.'" '.$checked.'/>'.$value;
 		echo '</label>';
 	}
 }
@@ -51,6 +52,7 @@ function limitnum_set_forms(){
 ?>
 <html>
 <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <style type="text/css">
 <!--
 	.tbl_list {
@@ -101,7 +103,7 @@ function limitnum_set_forms(){
 				<option value='refa_dbdel'  style="background:#fcc;">DB削除</option>
 			</select>
 			]</span>
-			<a style="font-size:small;color:white;margin-right:5px;margin-left:5px;" href="javascript:void(0);" onclick="db_reload();">更新</a>
+			<a style="font-size:small;color:white;margin-right:5px;margin-left:5px;" href="javascript:void(0);" onclick="run_reload();">更新</a>
 			<input id="reload_num" name="reload_num" type="hidden" value=""/>
 			<!--<span id="ip" style="margin-top:3px;float:right;font-size:small;vertical-align:middle;"></span>-->
 		</div>
