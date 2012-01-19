@@ -33,16 +33,17 @@ function unique(array) {
 
 // テキスト整形
 function text_clean(value) {
+	value = value.replace(/^[\s]/g, "");
+	value = value.replace(/[\s]$/g, "");
+	value = value.replace(/\s,\s/g, ",");
+	value = value.replace(/[\s]+/g, " ");
+	
 	value = value.replace(/\t/g, " ");
 	value = value.replace(/\r\n/g, " ");
 	value = value.replace(/\n/g, " ");
-	value = value.replace(/\s,\s/g, ",");
-	value = value.replace(/,([^ ])/g , ', $1');
-	value = value.replace(/[^ ]\([^ ]/g , ' ( ');
-	value = value.replace(/[^ ]\)[^ ]/g , ' ) ');
-	value = value.replace(/[\s]+/g, " ");
-	value = value.replace(/^[\s]/g, "");
-	value = value.replace(/[\s]$/g, "");
+	// value = value.replace(/,([^ ])/g , ', $1');
+	// value = value.replace(/[^ ]\([^ ]/g , ' ( ');
+	// value = value.replace(/[^ ]\)[^ ]/g , ' ) ');
 	return value;
 }
 
@@ -374,7 +375,6 @@ function run_clean_query() {
 	//var new_val = query_clean(text_clean($('#query').val()));
 	var new_val = text_clean($('#query').val());
 	$('#query').val(new_val);
-	
 	// テキストエリア拡大
 	var line_num = $("#query").val().split("\n").length;
 	var height = (line_num > 4) ? 18 * line_num:50;
@@ -445,6 +445,19 @@ function run_host() {
 	}
 }
 
+function remove_comma(str) {
+	str = str.replace(/^(\s*\,\s*)/, "");
+	str = str.replace(/(\s*\,\s*)$/, "");
+	return str;
+}
+
+function csv_to_array(str) {
+	var ary = [];
+	str = remove_comma(str);
+	ary = str.split(',');
+	return ary;
+}
+
 // リファレンス用SQL生成
 function create_refa() {
 	var type = $('#refarence').val();
@@ -478,18 +491,14 @@ function create_refa() {
 		col_types +=  $(this).html().replace(/(.*\()(.*)(\).*$)/, "$2") + ',';
 	});
 	
-	// 最初最後のカンマを取る
-	col_names = col_names.replace(/,[ ]*$/, "").replace(/^[ ]*\,/, "");
-	col_types = col_types.replace(/,[ ]*$/, "").replace(/^[ ]*\,/, "");
-	
 	// テーブル作成用変数
 	var create_values = '';
-	var ins_names = col_names.split(',');
-	var ins_types = col_types.split(',');
+	var ins_names = csv_to_array(col_names);
+	var ins_types = csv_to_array(col_types);
 	for (var i = 0;i < ins_types.length;i++) {
 		create_values += ins_names[i] + ' ' + ins_types[i] + ', ';
 	}
-	create_values = create_values.replace(/,[ ]*$/, "").replace(/^[ ]*\,/, "");
+	create_values = remove_comma(create_values);
 	
 	// テーブルリストのタイプを調べる
 	var table_type = $('#tbl_select option:selected').attr('type');
@@ -524,11 +533,11 @@ function create_refa() {
 	} else if (type === 'refa_dbdel') {
 		refa = "DROP DATABASE " + db_name + ";";
 	}
-	var query = $("#query").val().replace(/(^\s+)|(\s+$)/g, "") + '\n' + refa;
 	
 	$("#query").html(refa);
 	$("#query").val(refa);
 	
+	// var query = $("#query").val().replace(/(^\s+)|(\s+$)/g, "") + '\n' + refa;
 	//$("#query").html(query);
 	//$("#query").val(query);
 	run_clean_query();
