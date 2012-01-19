@@ -28,8 +28,8 @@ if($_POST["type"] == "db_option"){
 }else if($_POST["type"] == "db_view"){
 	$col_dat=get_column_data($DB,$sqlx_limit);
 	
-	$html[0] = table_naiyo($DB,$sqlx_limit,$col_dat);
-	$html[1] = pager_create($DB,$sqlx);
+	$html[0] = table_viewer($DB,$sqlx_limit,$col_dat);
+	$html[1] = pager_view_opt($DB,$sqlx);
 	$html[2] = col_option($col_dat);
 	$mes='テーブルを表示しました';
 }else if($_POST["type"] == 'query_run'){
@@ -37,8 +37,8 @@ if($_POST["type"] == "db_option"){
 	
 	if(preg_match("/^[\s]*SELECT/i",$sqlx)){
 		$col_dat=get_column_data($DB,$sqlx);
-		$html[0] = table_naiyo($DB,$sqlx,$col_dat);
-		$html[1] = pager_create($DB,$sqlx);
+		$html[0] = table_viewer($DB,$sqlx,$col_dat);
+		$html[1] = pager_view_opt($DB,$sqlx);
 	}else{
 		run_sql_query($DB,$sqlx,'query_run');
 		$html[0].="実行しました<br><font color=\"#ff0000\">$sqlx</font><br>";
@@ -84,7 +84,7 @@ function create_query_limit(){
 	return $qr_limit;
 }
 
-function pager_create($DB,$tbl_query){
+function pager_view_opt($DB,$tbl_query){
 	$dat=page_cnt($DB,$tbl_query);
 	$start_row=(($_POST["page_select"] * $_POST["limit_num"])-$_POST["limit_num"] + 1);
 	$end_row=($_POST["page_select"] * $_POST["limit_num"]);
@@ -189,25 +189,25 @@ function col_option($col_dat){
 }
 
 // テーブル内容のテーブルHTML作成
-function table_naiyo($DB,$tbl_naiyo_sqlx,$col_dat){
-	$html_table_naiyo='<table cellpadding="1" cellspacing="0" border="1" style="border-width:1px;border-color:#ccc; font-size:small">';
+function table_viewer($DB,$tbl_naiyo_sqlx,$col_dat){
+	$html_table_viewer='<table cellpadding="1" cellspacing="0" border="1" style="border-width:1px;border-color:#ccc; font-size:small">';
 	// テーブル最初の行 フィールド名
-	$html_table_naiyo.='<tr bgcolor="#333" style="color:#fff;"><td><input type="checkbox"></td>';
+	$html_table_viewer.='<tr bgcolor="#333" style="color:#fff;"><td><input type="checkbox"></td>';
 	for($i=0;$i<$col_dat['total_num'];$i++){
 		$type='';
 		$selected=($_POST["col_select"] == $col_dat[$i]['name'])?"selected":'';
-		$html_table_naiyo.='<td><a  href="javascript:void(0);" onclick="add_order(\''.$col_dat[$i]['name'].'\');" style="color:#fff" title="">'.$col_dat[$i]['name'].'</td>';
+		$html_table_viewer.='<td><a  href="javascript:void(0);" onclick="add_order(\''.$col_dat[$i]['name'].'\');" style="color:#fff" title="">'.$col_dat[$i]['name'].'</td>';
 	}
-	$html_table_naiyo.='</tr>';
+	$html_table_viewer.='</tr>';
 	
 	// テーブル中身 交互に色変え
-	$pdb=run_sql_query($DB,$tbl_naiyo_sqlx,'table_naiyo');
+	$pdb=run_sql_query($DB,$tbl_naiyo_sqlx,'table_viewer');
 	$t=0;
 	while($data=$pdb->fetch(PDO::FETCH_ASSOC)){
 		$tr_back=($t%2==0)?"fff":"ddd";
 		// オンマウスで色を変える
-		$html_table_naiyo.='<tr id="table_tr_'.$t.'"style="background-color:#'.$tr_back.';" onmouseover="this.style.backgroundColor=\'#9ff\'" onmouseout="this.style.backgroundColor=\'#'.$tr_back.'\'">';
-		$html_table_naiyo.='<td><input type="checkbox" onclick="dbview_chk_toggle(\'#table_tr_'.$t.'\');"></td>';
+		$html_table_viewer.='<tr id="table_tr_'.$t.'"style="background-color:#'.$tr_back.';" onmouseover="this.style.backgroundColor=\'#9ff\'" onmouseout="this.style.backgroundColor=\'#'.$tr_back.'\'">';
+		$html_table_viewer.='<td><input type="checkbox" onclick="dbview_chk_toggle(\'#table_tr_'.$t.'\');"></td>';
 		
 		foreach($data as $dat){
 			if((int)$_POST["setting_value_limit"] != 0 && strlen($dat)>(int)$_POST["setting_value_limit"]){
@@ -216,15 +216,15 @@ function table_naiyo($DB,$tbl_naiyo_sqlx,$col_dat){
 				$dat=htmlspecialchars($dat);
 			}
 			if($dat == ''){ $dat='&nbsp;'; }
-			$html_table_naiyo.='<td style="white-space: nowrap;">'.$dat.'</td>';
+			$html_table_viewer.='<td style="white-space: nowrap;">'.$dat.'</td>';
 		}
-		$html_table_naiyo.='</tr>';
+		$html_table_viewer.='</tr>';
 		$t++;
 	}
 	
-	$html_table_naiyo.='</table>';
+	$html_table_viewer.='</table>';
 	
-	return $html_table_naiyo;
+	return $html_table_viewer;
 }
 
 function mes_info(){
@@ -258,9 +258,10 @@ function alert($mes){
 	exit;
 }
 
-function error_print($mes,$sqlx,$code){
+function error_print($mes,$sqlx,$DB){
 	// 区切り文字を入れて200 OKとかの奴を最後にもっていく
 	$result=array(mes_csv($mes,$sqlx,1),'','','','','');
+	$DB->disconnect;
 	die(result_print($result));
 }
 
@@ -277,7 +278,7 @@ function result_print($ary){
 }
 
 function run_sql_query($DB,$sqlx,$err_mes=''){
-	$pdb=$DB->query($sqlx) or error_print("データベース実行エラー(".$err_mes.")：".error_disp($DB->errorInfo(),$sqlx),$sqlx,0);
+	$pdb=$DB->query($sqlx) or error_print("データベース実行エラー(".$err_mes.")：".error_disp($DB->errorInfo(),$sqlx),$sqlx,$DB);
 	return $pdb;
 }
 

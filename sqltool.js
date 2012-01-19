@@ -1,6 +1,7 @@
 ﻿"use strict";
 
 
+
 // 日時などの桁を合わせる
 function conv2deg(val) {
 	val = "00" + val;
@@ -35,6 +36,10 @@ function text_clean(value) {
 	value = value.replace(/\t/g, " ");
 	value = value.replace(/\r\n/g, " ");
 	value = value.replace(/\n/g, " ");
+	value = value.replace(/\s,\s/g, ",");
+	value = value.replace(/,([^ ])/g , ', $1');
+	value = value.replace(/[^ ]\([^ ]/g , ' ( ');
+	value = value.replace(/[^ ]\)[^ ]/g , ' ) ');
 	value = value.replace(/[\s]+/g, " ");
 	value = value.replace(/^[\s]/g, "");
 	value = value.replace(/[\s]$/g, "");
@@ -42,7 +47,7 @@ function text_clean(value) {
 }
 
 function uc(str) {
-	return str.toUpperCase();
+	return String(str).toUpperCase();
 }
 
 function indent_string(i) {
@@ -55,126 +60,107 @@ function indent_string(i) {
 
 // クエリ整形
 function query_clean(value) {
-	alert('作成中');
-	return value;
-
-	//value = value.replace(/\s*,\s*/g," \n\t, ");
-	//value = value.replace(/\s+AS\s+/g,"\t\tAS ");
-	// 前の行につなげる単語
-	/*
+	// 前の行につなげる単語	
 	var line_continue = ['DISTINCT', 'OF'];
-
+	
 	// 新しい行を開始する単語
-	line_init = ['SELECT', 'FROM', 'LEFT', 'RIGHT', 'INNER', 'FULL', 'CROSS', 'WHERE', 'GROUP', 'HAVING', 'ORDER', 'UNION', 'SET', 'VALUES', 'INSERT', 'DELETE', 'UPDATE', 'OFFSET', 'LIMIT', 'ON', 'CASE', 'WHEN', 'ELSE', 'END', 'FOR'];
+	var line_init = ['SELECT', 'FROM', 'LEFT', 'RIGHT', 'INNER', 'FULL', 'CROSS', 'WHERE', 'GROUP', 'HAVING', 'ORDER', 'UNION', 'SET', 'VALUES', 'INSERT', 'DELETE', 'UPDATE', 'OFFSET', 'LIMIT', 'ON', 'CASE', 'WHEN', 'ELSE', 'END', 'FOR'];
 
 	// インデントをクリアする単語
-	indent_init = ['SELECT', 'FROM', 'LEFT', 'RIGHT', 'INNER', 'FULL', 'CROSS', 'WHERE', 'GROUP', 'HAVING', 'ORDER', 'UNION', 'SET', 'VALUES', 'INSERT', 'UPDATE', 'DELETE', 'OFFSET', 'LIMIT', 'FOR'];
-
+	var indent_init = ['SELECT', 'FROM', 'LEFT', 'RIGHT', 'INNER', 'FULL', 'CROSS', 'WHERE', 'GROUP', 'HAVING', 'ORDER', 'UNION', 'SET', 'VALUES', 'INSERT', 'UPDATE', 'DELETE', 'OFFSET', 'LIMIT', 'FOR'];
+	
 	// 現在行を終了する単語
-	line_terminate = ['SELECT', 'DISTINCT', 'INSERT', 'UPDATE', 'DELETE', 'BY', 'FROM', 'WHERE', 'AND', 'OR'];
-
+	var line_terminate = ['SELECT', 'DISTINCT', 'INSERT', 'UPDATE', 'DELETE', 'BY', 'FROM', 'WHERE', 'AND', 'OR'];
+	
 	// 次の行のインデントを増やす単語
-	indent_plus = ['SELECT', 'FROM', 'LEFT', 'RIGHT', 'INNER', 'FULL', 'CROSS', 'WHERE', 'GROUP', 'HAVING', 'ORDER', 'UNION', 'SET', 'VALUES', 'INSERT', 'UPDATE', 'DELETE', 'OFFSET', 'LIMIT', 'ON', 'CASE'];
+	var indent_plus = ['SELECT', 'FROM', 'LEFT', 'RIGHT', 'INNER', 'FULL', 'CROSS', 'WHERE', 'GROUP', 'HAVING', 'ORDER', 'UNION', 'SET', 'VALUES', 'INSERT', 'UPDATE', 'DELETE', 'OFFSET', 'LIMIT', 'ON', 'CASE'];
 
 	// 次の行のインデントを減らす単語
-	indent_minus = ['END'];
+	var indent_minus = ['END'];
 
 	// 大文字にする単語
-	capitalize = ['SELECT', 'FROM', 'LEFT', 'RIGHT', 'INNER', 'FULL', 'CROSS', 'WHERE', 'GROUP', 'HAVING', 'ORDER', 'UNION', 'SET', 'VALUES', 'INSERT', 'UPDATE', 'DELETE', 'OFFSET', 'LIMIT', 'ON', 'BY', 'CASE', 'WHEN', 'ELSE', 'END', 'AND', 'OR', 'DISTINCT', 'FOR', 'OF', 'IN', 'EXISTS', 'AS', 'JOIN', 'THEN', 'ASC', 'DESC'];
-
-	// 改行コードの統一
-	query = query.replace('\r\n', '\n');
-
-	// 空白の統一
-	query = query.replace('\t', ' ');
-	query = query.replace(' +', ' ');
-
-	// カンマの後に空白を入れて見やすくする
-	query = query.replace(' , ([^ ])' , ' $1');
-
-	// キーワードとカッコがつながっている場合は分離する
-	for (t in capitalize) {
-		if (capitalize.hasOwnProperty(t)) {
-			query = query.replace(')(' + t + ')', ') $1');
-			query = query.replace('((' + t + ')', '( $1');
-			query = query.replace('(' + t + ')(', '$1 (');
-			query = query.replace('(' + t + '))', '$1 )');
+	var capitalize = ['SELECT', 'FROM', 'LEFT', 'RIGHT', 'INNER', 'FULL', 'CROSS', 'WHERE', 'GROUP', 'HAVING', 'ORDER', 'UNION', 'SET', 'VALUES', 'INSERT', 'UPDATE', 'DELETE', 'OFFSET', 'LIMIT', 'ON', 'BY', 'CASE', 'WHEN', 'ELSE', 'END', 'AND', 'OR', 'DISTINCT', 'FOR', 'OF', 'IN', 'EXISTS', 'AS', 'JOIN', 'THEN', 'ASC', 'DESC'];
+	
+	var regs = '';
+	// 正規表現クラスを作る
+	var i = 0;
+	var reg_name = ['line_continue', 'line_init', 'indent_init', 'line_terminate', 'indent_plus', 'indent_minus', 'capitalize'];
+	var reg_words = [line_continue, line_init, indent_init, line_terminate, indent_plus, indent_minus, capitalize];
+	for (var reg_word in reg_words) {
+		var pattern = '';
+		for (var reg_str in reg_word ) {
+			pattern += reg_str + '|';
 		}
+		regs[reg_name[i]] = new RegExp('[' + pattern + ']', "i");
+		i++;
 	}
-
+	
+	var query = text_clean(value);
+	
 	var ret = '';
 	var nest_level = 0;
 	var indent = 0;
 	var newline = 1;
 	
-	var lines = query.split('\n');
-	
-	for (line in lines ) {
-		if (lines.hasOwnProperty(line)) {
-			var words = line.split(' ');
-			for (word in  words ) {
-				if (words.hasOwnProperty(word)) {
-					if (length(uc(line).match(uc(words))) + line_continue > 0) {
-						if (substr(ret, length(ret) - 1) === "\n") {
-							ret = substr(ret, 0, length(ret) - 1);
-						}
-					} else if (length(uc(line).match(uc(words))) + line_init > 0) {
-						ret += "\n";
-						newline = 1;
-					}
-		
-					if (length(uc(line).match(uc(words))) + indent_init > 0) {
-						indent = 0;
-					}
-		
-					if (newline) {
-						ret += indent_string(nest_level +  indent);
-						newline = 0;
-		
-					} else {
-						ret += " ";
-					}
-		
-					if (length(uc(line).match(uc(words))) + capitalize > 0) {
-						ret += uc(line);
-		
-					} else {
-						ret += line;
-					}
-		
-					while (line.match(/\(/g)) {
-						nest_level++;
-					}
-					while (line.match(/\)/g)) {
-						nest_level--;
-					}
-		
-					if (line.match(/, /) || length(uc(line).match(uc(words))) + line_terminate > 0) {
-						ret += "\n";
-						newline = 1;
-					}
-		
-					if (length(uc(words).match(uc(words))) + indent_plus > 0) {
-						indent++;
-		
-					} else if (length(uc(words).match(uc(words))) + indent_minus > 0) {
-						indent--;
-					}
-				}
+	var words = query.split(' ');
+	for (var word in words) {
+		if (uc(word).match(regs.line_continue) > 0) {
+			if (ret.substring(0, ret.length - 1) === "\n") {
+				ret = ret.substring(0, ret.length - 1);
 			}
+		} else if (uc(word).match(regs.line_init) > 0) {
+			ret += "\n";
+			newline = 1;
+		}
+
+		if (uc(word).match(regs.indent_init) > 0) {
+			indent = 0;
+		}
+
+		if (newline) {
+			ret += indent_string(nest_level +  indent);
+			newline = 0;
+		} else {
+			ret += " ";
+		}
+
+		if (uc(word).match(regs.capitalize)  > 0) {
+			ret += uc(word);
+
+		} else {
+			ret += word;
+		}
+
+		while (word.match(/\(/g)) {
+			nest_level++;
+		}
+		while (word.match(/\)/g)) {
+			nest_level--;
+		}
+
+		if (word.match(/, /) || uc(word).match(regs.line_terminate) > 0) {
+			ret += "\n";
+			newline = 1;
+		}
+		
+		if (uc(word).match(regs.indent_plus) > 0) {
+			indent++;
+		} else if (uc(word).match(regs.indent_minus) > 0) {
+			indent--;
 		}
 	}
-	
 	return ret;
-	*/
 }
 
 //------------------- ローカルストレージ用関数 ------------///
 
 
+
 // ローカルストレージに保存
 function ls_save(id) {
-	
+	if (!id) {
+		id = this.id;
+	}
 	//ラジオボタン
 	if ($("#" + id).attr('type') === 'radio') {
 		var rdo_name = $("#" + id).attr('name');
@@ -194,11 +180,17 @@ function ls_save(id) {
 
 // ローカルストレージにHTML保存
 function ls_save_html(id) {
+	if (!id) {
+		id = this.id;
+	}
 	localStorage.setItem(id, $("#" + id).html());
 }
 
 // ローカルストレージ読込
 function ls_load(id) {
+	if (!id) {
+		id = this.id;
+	}
 	var data = localStorage.getItem(id);
 	if ($("#" + id).attr('type') === 'radio') {
 		$("input[name='" + id + "']").attr('checked', true);
@@ -213,6 +205,7 @@ function ls_load(id) {
 	}
 	return data;
 }
+
 
 // ローカルストレージを削除
 function ls_clear(id) {
@@ -302,14 +295,16 @@ function run_ajax(type, result_id, post_add) {
 }
 
 
-// 表示切り替えトグル
-function id_view(id) {
-	if ($('#' + id).css('display') === 'none') {
-		$('#' + id).css('display', '');
+// 表示切替
+function id_display_toggle(id) {
+	id = id.replace('_toggle', '');
+	if ($("#" + id).css('display') === 'block' || $("#" + id).css('display') === 'inline') {
+		$("#" + id).css('display', 'none');
 	} else {
-		$('#' + id).css('display', 'none');
+		$("#" + id).css('display', 'inline');	
 	}
 }
+
 
 // 接続設定リスト全削除
 function connect_clear() {
@@ -378,7 +373,6 @@ function connect_save() {
 function run_clean_query() {
 	//var new_val = query_clean(text_clean($('#query').val()));
 	var new_val = text_clean($('#query').val());
-	new_val = new_val.replace(/;\s*/g, ";\r\n");
 	$('#query').val(new_val);
 	
 	// テキストエリア拡大
@@ -409,7 +403,6 @@ function run_reload() {
 	run_ajax('reload', ids);
 }
 
-
 // クエリ内キーボード操作
 function run_key(event) {
 	//alert(event.keyCode);
@@ -420,12 +413,8 @@ function run_key(event) {
 		run_clean_query();
 	} else if (event.keyCode == $("input[name=setting_key_update]:checked").val() || event.charCode == $("input[name=setting_key_update]:checked").val()) {
 		run_reload();
-	} else if (event.keyCode == KeyEvent.DOM_VK_ESCAPE || event.charCode == KeyEvent.DOM_VK_ESCAPE) {
-		$('#query').blur();
-	} else if ((event.keyCode == KeyEvent.DOM_VK_TAB || event.charCode == KeyEvent.DOM_VK_TAB) && !event.shiftKey) {
-		$('#query').val($('#query').val().substr(0, start) + TAB_SPACE + $('#query').val().substr(end));
-		//$('#query').selectionStart = $('#query').selectionEnd = start + TAB_SPACE.length;
-		//event.preventDefault();
+	} else if (event.keyCode == $("input[name=setting_key_conf]:checked").val() || event.charCode == $("input[name=setting_key_conf]:checked").val()) {
+		
 	}
 }
 
@@ -605,7 +594,6 @@ function add_order(field) {
 	pre_query = new_val;
 }
 
-
 // フィールド選択時、クエリにwhere追加
 function add_row_where() {
 	var table_name = $('#tbl_select').val();
@@ -620,8 +608,6 @@ function add_row_where() {
 	
 	$("#query").val(new_val);
 }
-
-
 
 // ページ送り用
 function page_sel(id, cmd) {
@@ -642,7 +628,6 @@ function run_query() {
 	//$("#query").val('');
 	//$("#query").css('height', '60px');
 }
-
 
 // 履歴の読込
 function history_read() {
@@ -665,6 +650,14 @@ function tbl_type_change(type) {
 	});
 }
 
+function load_display_toggle(id) {
+	if (ls_load(id + '_toggle') == '1') {
+		$('#' + id).css('display', 'block');
+	}
+}
+
+
+
 // 初期化処理
 $(document).ready(function () {
 	// クライアントIP取得
@@ -686,17 +679,9 @@ $(document).ready(function () {
 	ls_load('run_key');
 	ls_load('clean_key');
 	
-	if (ls_load('setting_view_tbl_list') === '1') {
-		id_view('tbl_list');
-	}
-	
-	if (ls_load('setting_view_typeselect') === '1') {
-		id_view('tbl_type_select');
-	}
-	
-	if (ls_load('setting_view_debug') === '1') {
-		id_view('debug_panel');
-	}
+	load_display_toggle('tbl_list');
+	load_display_toggle('tbl_type_select');
+	load_display_toggle('debug_panel');
 	
 	ls_load('setting_tblsel_view_type_r');
 	ls_load('setting_tblsel_view_type_v');

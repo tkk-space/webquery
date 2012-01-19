@@ -4,7 +4,7 @@ function key_radio_forms($id_name){
 		$key_code=$i+117;
 		$key_name='F'.(6+$i);
 		echo '<label>';
-		echo '<input type="radio" id="'.$id_name.'" name="'.$id_name.'" value="'.$key_code.'"  onchange="ls_save(\''.$id_name.'\');"  />'.$key_name;
+		echo '<input type="radio" id="'.$id_name.'" name="'.$id_name.'" value="'.$key_code.'"  onchange="ls_save();"  />'.$key_name;
 		echo '</label>';
 	}
 }
@@ -15,39 +15,18 @@ function table_set_forms(){
 		$checked=($key=='r')?'checked':'';
 		echo '<label><input type="checkbox" name="setting_tblsel_view_type[]"';
 		echo ' id="setting_tblsel_view_type_'.$key.'"';
-		echo ' onclick="ls_save(\'setting_tblsel_view_type_'.$key.'\'); tbl_type_change(\''.$key.'\')"';
+		echo ' onclick="ls_save(); tbl_type_change(\''.$key.'\')"';
 		echo ' value="'.$key.'" '.$checked.'/>'.$value;
 		echo '</label>';
 	}
 }
 
-
-function refarence_set_forms(){
-	// 結果　0:通常  1:エラー  2:システム  3:作成  4:読込  5:更新  6削除
-	// リファレンス用背景色・メッセージ用背景色
-	$mes_colors = array('#fff', '#f00', '#fff', '#cfc', '#cff', '#fc9', '#fcc');
-	/*
-	$refa_name=array(
-		'tblsel'=>'表表示',
-		'rowup'=>'行更新',
-		'tblcre'=>'表作成',
-		'rowadd'=>'行作成',
-		'colcre'=>'列作成',
-		'dbcre'=>'DB作成',
-		'tbldel'=>'表削除',
-		'rowdel'=>'行削除',
-		'coldel'=>'列削除',
-		'dbdel'=>'DB削除'
-	);*/
-
-}
-
 function limitnum_set_forms(){
 	$numlist=array('10','30','50','100','200');
 	foreach($numlist as $num){
-		echo '<label><input type="radio" id="limit_num" name="limit_num" value="'.$num.'"  onchange="ls_save(\'limit_num\');" checked />'.$num.'</label>';
+		echo '<label><input type="radio" id="limit_num" name="limit_num" value="'.$num.'"  onchange="ls_save();" checked />'.$num.'</label>';
 	}
-	echo '<label><input type="radio" id="limit_num" name="limit_num" value=""  onchange="ls_save(\'limit_num\');" />無制限</label>';
+	echo '<label><input type="radio" id="limit_num" name="limit_num" value=""  onchange="ls_save();" />無制限</label>';
 }
 ?>
 <html>
@@ -70,7 +49,7 @@ function limitnum_set_forms(){
 <body id="body">
 	<form id="fm" name="fm" >
 		<div style="background-color:#666;padding:5px;vertical-align:middle;color:#ffffff;">
-			<a style='font-size:small;color:white;margin-right:5px;margin-left:5px;' onclick="id_view('setting');" href="javascript:void(0);">設定</a>
+			<a style='font-size:small;color:white;margin-right:5px;margin-left:5px;' onclick="id_display_toggle('setting');" href="javascript:void(0);">設定</a>
 			
 			<!-- DBパンくずセレクト -->
 			<select id="ip_select" name="ip_select" size="1" type="text" onchange="run_host();">
@@ -109,8 +88,8 @@ function limitnum_set_forms(){
 		</div>
 		
 		<!-- 設定パネル start -->
-		<div id="setting" name="setting" style="display:none;background-color:#ccc;width:100%;font-size:small;">
-			<table style="font-size:small;">
+		<div id="setting" name="setting" style="display:none;font-size:small;">
+			<table style="font-size:small;background-color:#ccc;width:100%;">
 				<tr>
 					<td style="text-align:right;">接続設定：</td>
 					<td>
@@ -142,7 +121,7 @@ function limitnum_set_forms(){
 				<tr>
 					<td style="text-align:right;">表示：</td>
 					<td>
-						<label><input type="checkbox" name="setting_view_debug" id="setting_view_debug" onchange="id_view('debug_panel');ls_save('setting_view_debug');" value="1"/>デバッグパネル</label>
+						<label><input type="checkbox" name="setting_view_debug" id="setting_view_debug" onchange="id_display_toggle(this.id);ls_save();" value="1"/>デバッグパネル</label>
 					</td>
 				</tr>
 				
@@ -151,17 +130,17 @@ function limitnum_set_forms(){
 					<td><?php table_set_forms();?></td>
 				</tr>
 				<?php
-				$key_forms_name=array('実行'=>'setting_key_run','整形'=>'setting_key_crean','更新'=>'setting_key_update','↑'=>'setting_key_up');
+				$key_forms_name=array('実行'=>'setting_key_run','整形'=>'setting_key_crean','更新'=>'setting_key_update','設定'=>'setting_key_conf');
 				foreach($key_forms_name as $key=>$value){ ?>
 					<tr>
 						<td style="text-align:right;"><?php echo $key?>：</td>
 						<td><?php key_radio_forms($value);?></td>
 					</tr>
 				<?php } ?>
-
+				
 				<tr>
 					<td style="text-align:right;">省略文字数：</td>
-					<td><input id="setting_value_limit" name="setting_value_limit" size="2" type="text" onchange="ls_save('setting_value_limit');" value="100"/></td>
+					<td><input id="setting_value_limit" name="setting_value_limit" size="2" type="text" onchange="ls_save();" value="100"/></td>
 				</tr>
 				<tr>
 					<td style="text-align:right;">制限数：</td>
