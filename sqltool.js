@@ -408,11 +408,11 @@ function run_key(event) {
 	//alert(event.keyCode);
 	//alert($("input[name=setting_key_run]:checked").val());
 	if (event.keyCode == $("input[name=setting_key_run]:checked").val() || event.charCode == $("input[name=setting_key_run]:checked").val()) {
-		run_query();
+		//run_query();
 	} else if (event.keyCode == $("input[name=setting_key_clean]:checked").val() || event.charCode == $("input[name=setting_key_clean]:checked").val()) {
-		run_clean_query();
+		//run_clean_query();
 	} else if (event.keyCode == $("input[name=setting_key_update]:checked").val() || event.charCode == $("input[name=setting_key_update]:checked").val()) {
-		run_reload();
+		//run_reload();
 	} else if (event.keyCode == $("input[name=setting_key_conf]:checked").val() || event.charCode == $("input[name=setting_key_conf]:checked").val()) {
 		
 	}
