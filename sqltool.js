@@ -194,7 +194,7 @@ function ls_load(id) {
 	}
 	var data = localStorage.getItem(id);
 	if ($("#" + id).attr('type') === 'radio') {
-		$("input[name='" + id + "']").attr('checked', true);
+		$("input[name='" + id + "']").val(data);
 	} else if ($("#" + id).attr('type') === 'checkbox') {
 		if (data === '1') {
 			$("#" + id).attr('checked', true);
@@ -678,37 +678,41 @@ $(document).ready(function () {
 	// タイトル更新
 	$('#title').html('WebQuery [' + location.hostname + ']');
 	
-	var default_ip = ls_load('ip_select');
-	var default_db = ls_load('db_select');
-	var default_tbl = ls_load('tbl_select');
-	
-	var default_value_limit = (ls_load('value_limit') === '') ? 100 : ls_load('value_limit');
-	
-	$('#value_limit').val(default_value_limit);
-	ls_load('run_key');
-	ls_load('clean_key');
-	
-	load_display_toggle('tbl_list');
-	load_display_toggle('tbl_type_select');
-	load_display_toggle('debug_panel');
-	
 	ls_load('setting_tblsel_view_type_r');
 	ls_load('setting_tblsel_view_type_v');
 	ls_load('setting_tblsel_view_type_s');
 	ls_load('setting_tblsel_view_type_i');
 	
+	ls_load('setting_key_run');
+	ls_load('setting_key_clean');
+	ls_load('setting_key_update');
+	ls_load('setting_key_conf');
+	
+	ls_load('value_limit');
+	ls_load('limit_num');
+	
+	load_display_toggle('tbl_list');
+	load_display_toggle('tbl_type_select');
+	load_display_toggle('debug_panel');
+	
 	//接続リスト初期化
 	connect_init();
 	
-	ls_load('ip_select');
+	//ls_load('ip_select');
+
+	/*
+	var default_ip = ls_load('ip_select');
+	var default_db = ls_load('db_select');
+	var default_tbl = ls_load('tbl_select');
 	
+		
 	if (default_db !== '') {
 		run_ajax('db_option', 'db_select');
 		run_ajax('tbl_option', 'tbl_select');
 	} else if (default_ip !== '') {
 		run_ajax('db_option', 'db_select');
 	}
-	
+	*/
 	
 	/*
 	// fileapi関連
