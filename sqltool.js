@@ -420,7 +420,7 @@ function run_key(event) {
 
 // DB切り替え時
 function run_db() {
-	run_ajax('tbl_option', 'tbl_select');
+	run_ajax('tbl_option', 'tbl_select,db_viewer');
 	ls_save_html('db_select');
 }
 
@@ -429,6 +429,15 @@ function run_tbl() {
 	if ($("#tbl_select").val() !== '') {
 		run_ajax('db_view', 'db_viewer,view_opt,col_select');
 		ls_save('tbl_select');
+	}
+}
+
+// diff実行時
+function run_diff() {
+	if ($("#diff_user").val() !== '' && $("#diff_pass").val() !== '' && $("#diff_db").val() !== '' && $("#diff_host").val() !== '') {
+		run_ajax('diff', 'db_viewer');
+	} else {
+		alert('diff error');
 	}
 }
 
@@ -515,7 +524,7 @@ function create_refa() {
 	if (type === 'refa_tblsel') {
 		refa = 'SELECT * FROM ' + table_name + ' WHERE ' + col_name + '=\'\';';
 	} else if (type === 'refa_rowadd') {
-		refa = "INSERT INTO " + table_name + "(" + col_names + ") VALUES (" + col_types + ");";
+		refa = "INSERT INTO " + table_name + "(" + ins_names + ") VALUES (" + ins_types + ");";
 	} else if (type === 'refa_rowup') {	
 		refa = "UPDATE " + table_name + ' SET ' + col_name + "=''" + " WHERE " + col_name + "='';";
 	} else if (type === 'refa_rowdel') {

@@ -121,7 +121,7 @@ function limitnum_set_forms(){
 				<tr>
 					<td style="text-align:right;">表示：</td>
 					<td>
-						<label><input type="checkbox" name="setting_view_debug" id="setting_view_debug" onchange="id_display_toggle(this.id);ls_save();" value="1"/>デバッグパネル</label>
+						<label><input type="checkbox" name="setting_view_debug" id="setting_view_debug" onchange="id_display_toggle('debug_panel');ls_save();" value="1"/>デバッグパネル</label>
 					</td>
 				</tr>
 				

@@ -5,16 +5,15 @@ $html = array();
 $setting=array(
 	"dbtype"=>$_POST["setting_connect_db"]
 	,"ip"=>$_POST["setting_connect_ip"]
-	,"port"=>$_POST["setting_connect_ip"]
+	,"port"=>$_POST["setting_connect_port"]
 	,"db"=>$_POST["db_select"]
 	,"user"=>$_POST["setting_connect_user"]
 	,"pass"=>$_POST["setting_connect_pass"]
 	,"timeout"=>3
 );
 
-$dsn=create_dsn($setting);
+$DB = create_db($setting);
 
-$DB = new PDO($dsn) or error_print('データベース接続エラー(.'.$_POST["setting_connect_name"].'.)',$dsn);
 
 $sqlx='SELECT * FROM '.$_POST["tbl_select"];
 $sqlx_limit = $sqlx.create_query_limit();
@@ -24,6 +23,7 @@ if($_POST["type"] == "db_option"){
 	$mes='DBに接続しました';
 }else if($_POST["type"] == "tbl_option"){
 	$html[0] =tbl_option($DB);
+	$html[1] = db_info_html($DB);
 	$mes='DBを選択しました';
 }else if($_POST["type"] == "db_view"){
 	$col_dat=get_column_data($DB,$sqlx_limit);
@@ -57,6 +57,8 @@ if($_POST["type"] == "db_option"){
 	}
 	$mes='更新しました ';
 }else if($_POST["type"] == 'diff'){
+	$html[0]=diff_viewer($DB);
+	$html[1]='abc';
 	$mes='比較しました ';
 }
 
@@ -282,43 +284,41 @@ function run_sql_query($DB,$sqlx,$err_mes=''){
 	return $pdb;
 }
 
-function check_db_state($DB1,$DB2){
-	$dbname1='';
-	$dbname2='';
-	$result = doDiffDb($DB1,$DB2,$dbname1,$dbname2);
-	$ret='
-	<h1>Diff</h1>
-	<table border="1">
-	<tr>
-		<th>No</th>
-		<th>テーブル名</th>
-		<th>カラム名</th>
-		<th>'.$dbname1.'</th>
-		<th>'.$dbname2.'</th>
-		<th>備考</th>
-	</tr>';
-	$no = 0;
-	foreach($result as $columns){
-		$no++;
-		$ret.="<tr><td>$no</td>";
-		foreach($columns as $cell){
-			$ret.="<td>$cell</td>";
-		}
-		$ret.="</tr>";
-	}
-	$ret.='</table>';
+function db_info_html(){
+	$html='
+	HOST:<input type="text" id="diff_connect_ip" name="diff_connect_ip" value="'.$_POST{'setting_connect_ip'}.'">
+	DB:<input type="text" id="diff_connect_db" name="diff_connect_db" value="">
+	USER:<input type="text" id="diff_connect_user" name="diff_connect_user" value="'.$_POST{'setting_connect_user'}.'">
+	PASS:<input type="password" id="diff_connect_pass" name="diff_connect_pass" value="'.$_POST{'setting_connect_pass'}.'">
+	<input type="button" value="DIFF" onclick="run_diff()">
+	';
+	return $html;
 }
 
-function doDiffDb($DB1,$DB2,$dbname1,$dbname2){
-	$tables1 = _get_tables($DB1);
-	$tables2 = _get_tables($DB2);
-
+function diff_viewer($DB){
+	$diff_connect_setting=array(
+		"dbtype"=>$_POST["diif_connect_dbtype"]
+		,"ip"=>$_POST["diff_connect_ip"]
+		,"db"=>$_POST["diff_connect_db"]
+		,"user"=>$_POST["diff_connect_user"]
+		,"pass"=>$_POST["diff_connect_pass"]
+		,"timeout"=>3
+	);
+	
+	$DB_diff = create_db($diff_connect_setting);
+	
+	$dbname1=$_POST["db_select"];
+	$dbname2=$_POST["diff_connect_db"];
+	
+	$tables1 = _get_tables($DB);
+	$tables2 = _get_tables($DB_diff);
+	
 	$all_tables = array_unique(array_merge($tables1, $tables2));
-
+	
 	foreach($all_tables as $all_table){
 		if(in_array($all_table,$tables1) && in_array($all_table,$tables2)){
-			$columns1    = _get_table_info($DB1,$all_table);
-			$columns2    = _get_table_info($DB2,$all_table);
+			$columns1    = _get_table_info($DB,$all_table);
+			$columns2    = _get_table_info($DB_diff,$all_table);
 			$all_columns = array_merge($columns1, $columns2);
 			foreach($all_columns as $all_columnKey=>$all_columnVal){
 				$tmp = array('','&nbsp;','&nbsp;','&nbsp;','&nbsp;');
@@ -330,19 +330,18 @@ function doDiffDb($DB1,$DB2,$dbname1,$dbname2){
 					$tmp[1] = $all_columnKey;
 					
 					if(!empty($columns1[$all_columnKey])){
-						$tmp[2] = '○';
-					}else{
-						$tmp[4] = sprintf("【%s】",$dbname1);
-					}
-					if(!empty($columns2[$all_columnKey])){
-						$tmp[3] = '○';
-					}else{
-						$tmp[4] = sprintf("【%s】",$dbname2);
+						//$tmp[2] = '【'.$all_columnKey.'】が存在しません';
+						$tmp[3] = 'カラム無し';
 					}
 					
-					$tmp[4] .= 'に【'.$all_columnKey.'】が存在しません';
-					if($tmp[2] == '○' && $tmp[3] == '○'){
-						$tmp[4] = 'よく分からないから確認して！！';
+					if(!empty($columns2[$all_columnKey])){
+						//$tmp[3] = '【'.$all_columnKey.'】が存在しません';
+						$tmp[3] = 'カラム無し';
+					}
+					
+					
+					if($tmp[2] != '' && $tmp[3] != ''){
+						//$tmp[4] = 'よく分からないから確認して！！';
 					}
 					
 				}else if($columns1[$all_columnKey] != $columns2[$all_columnKey]){
@@ -350,32 +349,51 @@ function doDiffDb($DB1,$DB2,$dbname1,$dbname2){
 					$tmp[1] = $all_columnKey;
 					$tmp[2] = $columns1[$all_columnKey];
 					$tmp[3] = $columns2[$all_columnKey];
-					$tmp[4] = '型が一致しません';
+					$tmp[4] = '型不一致';
 				}
-				if($tmp[0] != ''){$ret[] = $tmp;}
+				if($tmp[0] != ''){$result[] = $tmp;}
 			}
 		}else{
 			$tmp = array('','&nbsp;','&nbsp;','&nbsp;','&nbsp;');
 			$tmp[0] = $all_table;
 			$tmp[1] = '-';
 			if(in_array($all_table,$tables1)){
-				$tmp[2] = '○';
-				$tmp[4] = '【'.$dbname1.'】に【'.$all_table.'】がありません。';
-			}else{
-
+				//$tmp[2] = '【'.$all_table.'】がありません。';
+				$tmp[2] = 'テーブルがありません。';
+				//$tmp[4] = 'テーブル無し';
 			}
 			
 			if(in_array($all_table,$tables2)){
-				$tmp[3] = '○';
-				$tmp[4] = '【'.$dbname2.'】に【'.$all_table.'】がありません。';
-			}else{
-
+				$tmp[3] = 'テーブルがありません。';
+				//$tmp[4] = 'テーブル無し';
 			}
-			if($tmp[0] != ''){$ret[] = $tmp;}
+			
+			if($tmp[0] != ''){$result[] = $tmp;}
 		}
 
 	}
-	return $ret;
+	
+	$html='
+	<table border="1">
+	<tr>
+		<th>SQL</th>
+		<th>テーブル名</th>
+		<th>カラム名</th>
+		<th>'.$dbname1.'</th>
+		<th>'.$dbname2.'</th>
+		<th>種別</th>
+	</tr>';
+	
+	
+	foreach($result as $columns){
+		$html.='<tr><td><input type="checkbox" value="" ></td>';
+		foreach($columns as $cell){
+			$html.="<td>$cell</td>";
+		}
+		$html.="</tr>";
+	}
+	$html.='</table>';
+	return $html;
 }
 
 function _get_tables($db){
@@ -383,7 +401,10 @@ function _get_tables($db){
 	$str_query=get_tbl_query();
 	$tables = gethashs($db, $str_query);
 	foreach($tables as $table){
-		$ret[] = $table['relname'];
+		// テーブルのみを取得
+		if($table['relkind'] == 'r'){
+			$ret[] = $table['relname'];
+		}
 	}
 	return $ret;
 }
@@ -400,9 +421,9 @@ function _get_table_info($db, $table_name){
 
 function gethashs($db,$sqlx){
 	$fd = array();
-	$re=$db->query($db,$sqlx);
+	$re=run_sql_query($db,$sqlx);
 	if($re!=''){
-		while($rec=pg_fetch_assoc($re)){
+		while($rec=$re->fetch()){
 			$fd[] = $rec;
 		}
 	}
@@ -413,13 +434,22 @@ function error_disp($errinfo,$sqlx){
 	return $errinfo[2].' SQL内容:['.$sqlx.']';
 }
 
+function create_db($setting){
+	$dsn = create_dsn($setting);
+	$DB = new PDO($dsn) or error_print('データベース接続エラー(.'.$_POST["setting_connect_name"].'.)',$diff_dsn);
+	return $DB;
+}
+
 function create_dsn($setting){
+	if(!$setting["dbtype"]){ $setting["dbtype"]='pgsql'; }
+	if(!$setting["port"]){ $setting["port"]='5432'; }
+	
 	$dsn=$setting["dbtype"].':';
 	$dsn.='host='.$setting["ip"];
 	$dsn.=($setting["db"] != '' && $setting["db"] != 'reading...')?' dbname='.$setting["db"]:'';
 	$dsn.=($setting["user"])?' user='.$setting["user"]:'';
 	$dsn.=($setting["pass"])?' password='.$setting["pass"]:'';
-	//$dsn.=($setting["port"])?$dsn.=' port='.$setting["port"]:' port=5432';
+	$dsn.=($setting["port"])?' port='.$setting["port"]:'';
 	$dsn.=($setting["timeout"])?' connect_timeout='.$setting["timeout"]:'';
 	return $dsn;
 }
