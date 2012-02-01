@@ -316,10 +316,10 @@ function diff_viewer($DB){
 	$all_tables = array_unique(array_merge($tables1, $tables2));
 	
 	foreach($all_tables as $all_table){
+		$columns1 = _get_table_info($DB,$all_table);
+		$columns2 = _get_table_info($DB_diff,$all_table);
+		$all_columns = array_merge($columns1, $columns2);
 		if(in_array($all_table,$tables1) && in_array($all_table,$tables2)){
-			$columns1    = _get_table_info($DB,$all_table);
-			$columns2    = _get_table_info($DB_diff,$all_table);
-			$all_columns = array_merge($columns1, $columns2);
 			foreach($all_columns as $all_columnKey=>$all_columnVal){
 				$tmp = array('','&nbsp;','&nbsp;','&nbsp;','&nbsp;');
 				if(
@@ -329,19 +329,16 @@ function diff_viewer($DB){
 					$tmp[0] = $all_table;
 					$tmp[1] = $all_columnKey;
 					
-					if(!empty($columns1[$all_columnKey])){
-						//$tmp[2] = '【'.$all_columnKey.'】が存在しません';
-						$tmp[3] = 'カラム無し';
-					}
-					
 					if(!empty($columns2[$all_columnKey])){
-						//$tmp[3] = '【'.$all_columnKey.'】が存在しません';
+						$tmp[2] = sql_add_link('カラム無し','ALTER TABLE '.$all_table.' ADD '.$all_columnKey.' '.$all_columnVal.';');
+					}
+					
+					if(!empty($columns1[$all_columnKey])){
 						$tmp[3] = 'カラム無し';
 					}
 					
-					
-					if($tmp[2] != '' && $tmp[3] != ''){
-						//$tmp[4] = 'よく分からないから確認して！！';
+					if(trim($tmp[2]) == '' && trim($tmp[3]) == ''){
+						$tmp[4] = 'よく分からないから確認して！！';
 					}
 					
 				}else if($columns1[$all_columnKey] != $columns2[$all_columnKey]){
@@ -349,7 +346,7 @@ function diff_viewer($DB){
 					$tmp[1] = $all_columnKey;
 					$tmp[2] = $columns1[$all_columnKey];
 					$tmp[3] = $columns2[$all_columnKey];
-					$tmp[4] = '型不一致';
+					$tmp[4] = sql_add_link('型不一致','');
 				}
 				if($tmp[0] != ''){$result[] = $tmp;}
 			}
@@ -357,43 +354,52 @@ function diff_viewer($DB){
 			$tmp = array('','&nbsp;','&nbsp;','&nbsp;','&nbsp;');
 			$tmp[0] = $all_table;
 			$tmp[1] = '-';
-			if(in_array($all_table,$tables1)){
-				//$tmp[2] = '【'.$all_table.'】がありません。';
-				$tmp[2] = 'テーブルがありません。';
-				//$tmp[4] = 'テーブル無し';
-			}
 			
 			if(in_array($all_table,$tables2)){
-				$tmp[3] = 'テーブルがありません。';
-				//$tmp[4] = 'テーブル無し';
+				$tmp[2] = sql_add_link('テーブル無し','CREATE TABLE '.$all_table.' ('.create_sql_table($all_columns).');');
+			}
+			
+			if(in_array($all_table,$tables1)){
+				$tmp[3] = 'テーブル無し';
 			}
 			
 			if($tmp[0] != ''){$result[] = $tmp;}
 		}
-
 	}
 	
 	$html='
-	<table border="1">
+	<table border="1" style="font-size:small;">
 	<tr>
-		<th>SQL</th>
 		<th>テーブル名</th>
 		<th>カラム名</th>
-		<th>'.$dbname1.'</th>
+		<th>'.$dbname1.'<span style="font-size:xx-small;color:red;font-weight:normal;">※押下時SQL追加</span></th>
 		<th>'.$dbname2.'</th>
 		<th>種別</th>
 	</tr>';
 	
-	
 	foreach($result as $columns){
-		$html.='<tr><td><input type="checkbox" value="" ></td>';
-		foreach($columns as $cell){
-			$html.="<td>$cell</td>";
-		}
+		$html.="<td>$columns[0]</td>";
+		$html.="<td>$columns[1]</td>";
+		$html.="<td>$columns[2]</td>";
+		$html.="<td>$columns[3]</td>";
+		$html.="<td>$columns[4]</td>";
 		$html.="</tr>";
 	}
 	$html.='</table>';
+	$html.='結果：'.count($result).'個の違いがありました';
 	return $html;
+}
+
+function sql_add_link($link_name,$sql){
+	return '<a href="javascript:void(0);" onclick="$(\'#query\').val($(\'#query\').val()+\'\\n\'+\''.$sql.'\')">'.$link_name.'</a>';
+}
+
+function create_sql_table($columns){
+	foreach($columns as $key=>$val){
+		$sql.=' '.$key.' '.$val.',';
+	}
+	$sql=substr($sql, 0, (strlen($sql)-1) );
+	return $sql;
 }
 
 function _get_tables($db){

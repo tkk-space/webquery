@@ -420,7 +420,7 @@ function run_key(event) {
 
 // DB切り替え時
 function run_db() {
-	run_ajax('tbl_option', 'tbl_select,db_viewer');
+	run_ajax('tbl_option', 'tbl_select,view_opt');
 	ls_save_html('db_select');
 }
 
@@ -642,7 +642,7 @@ function page_sel(id, cmd) {
 
 // 実行ボタン押下時
 function run_query() {
-	run_ajax('query_run', 'db_viewer,view_opt');
+	run_ajax('query_run', 'db_viewer');
 	//$("#query").val('');
 	//$("#query").css('height', '60px');
 }
