@@ -316,58 +316,61 @@ function diff_viewer($DB){
 	$all_tables = array_unique(array_merge($tables1, $tables2));
 	
 	foreach($all_tables as $all_table){
-		$columns1 = _get_table_info($DB,$all_table);
-		$columns2 = _get_table_info($DB_diff,$all_table);
-		$all_columns = array_merge($columns1, $columns2);
 		if(in_array($all_table,$tables1) && in_array($all_table,$tables2)){
+			$columns1 = _get_table_info($DB,$all_table);
+			$columns2 = _get_table_info($DB_diff,$all_table);
+			$all_columns = array_merge($columns1, $columns2);
 			foreach($all_columns as $all_columnKey=>$all_columnVal){
-				$tmp = array('','&nbsp;','&nbsp;','&nbsp;','&nbsp;');
+				$rows = array('','&nbsp;','&nbsp;','&nbsp;','&nbsp;');
 				if(
 					!array_key_exists($all_columnKey, $columns1) ||
 					!array_key_exists($all_columnKey, $columns2)
 				){
-					$tmp[0] = $all_table;
-					$tmp[1] = $all_columnKey;
+					$rows[0] = $all_table;
+					$rows[1] = $all_columnKey;
 					
-					if(!empty($columns2[$all_columnKey])){
-						$tmp[2] = sql_add_link('カラム無し','ALTER TABLE '.$all_table.' ADD '.$all_columnKey.' '.$all_columnVal.';');
+					if(empty($columns1[$all_columnKey])){
+						$rows[2] = sql_add_link('カラム無し','ALTER TABLE '.$all_table.' ADD '.$all_columnKey.' '.$all_columnVal.';');
 					}
 					
-					if(!empty($columns1[$all_columnKey])){
-						$tmp[3] = 'カラム無し';
+					if(empty($columns2[$all_columnKey])){
+						$rows[3] = 'カラム無し';
 					}
 					
-					if(trim($tmp[2]) == '' && trim($tmp[3]) == ''){
-						$tmp[4] = 'よく分からないから確認して！！';
+					if(trim($rows[2]) != '&nbsp;' && trim($rows[3]) != '&nbsp;'){
+						$rows[4] = 'よく分からないから確認して！！';
 					}
-					
+					$result[] = $rows;
 				}else if($columns1[$all_columnKey] != $columns2[$all_columnKey]){
-					$tmp[0] = $all_table;
-					$tmp[1] = $all_columnKey;
-					$tmp[2] = $columns1[$all_columnKey];
-					$tmp[3] = $columns2[$all_columnKey];
-					$tmp[4] = sql_add_link('型不一致','');
+					$rows[0] = $all_table;
+					$rows[1] = $all_columnKey;
+					$rows[2] = $columns1[$all_columnKey];
+					$rows[3] = $columns2[$all_columnKey];
+					$rows[4] = sql_add_link('型不一致','');
+					$result[] = $rows;
 				}
-				if($tmp[0] != ''){$result[] = $tmp;}
 			}
 		}else{
-			$tmp = array('','&nbsp;','&nbsp;','&nbsp;','&nbsp;');
-			$tmp[0] = $all_table;
-			$tmp[1] = '-';
+			$rows = array('','&nbsp;','&nbsp;','&nbsp;','&nbsp;');
+			$rows[0] = $all_table;
+			$rows[1] = '-';
 			
 			if(in_array($all_table,$tables2)){
-				$tmp[2] = sql_add_link('テーブル無し','CREATE TABLE '.$all_table.' ('.create_sql_table($all_columns).');');
+				$columns1 = _get_table_info($DB,$all_table);
+				$columns2 = _get_table_info($DB_diff,$all_table);
+				$all_columns = array_merge($columns1, $columns2);
+				$rows[2] = sql_add_link('テーブル無し','CREATE TABLE '.$all_table.' ('.create_sql_table($all_columns).');');
 			}
 			
 			if(in_array($all_table,$tables1)){
-				$tmp[3] = 'テーブル無し';
+				$rows[3] = 'テーブル無し';
 			}
-			
-			if($tmp[0] != ''){$result[] = $tmp;}
+			$result[] = $rows;
 		}
 	}
 	
-	$html='
+	$html='結果：'.count($result).'個の違いがありました';
+	$html.='
 	<table border="1" style="font-size:small;">
 	<tr>
 		<th>テーブル名</th>
@@ -378,15 +381,18 @@ function diff_viewer($DB){
 	</tr>';
 	
 	foreach($result as $columns){
-		$html.="<td>$columns[0]</td>";
-		$html.="<td>$columns[1]</td>";
-		$html.="<td>$columns[2]</td>";
-		$html.="<td>$columns[3]</td>";
-		$html.="<td>$columns[4]</td>";
-		$html.="</tr>";
+		$html.="
+		<tr>
+			<td>$columns[0]</td>
+			<td>$columns[1]</td>
+			<td>$columns[2]</td>
+			<td>$columns[3]</td>
+			<td>$columns[4]</td>
+		</tr>
+		";
 	}
 	$html.='</table>';
-	$html.='結果：'.count($result).'個の違いがありました';
+	
 	return $html;
 }
 

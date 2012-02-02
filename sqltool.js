@@ -317,8 +317,12 @@ function connect_clear() {
 // 接続設定リスト初期化
 function connect_init() {
 	var data = '<option value="">HOST一覧(直接入力)</option>';
+	data += '<option value="DUMMY_DB_HOST<##!##>DUMMY_DB_USER<##!##>DUMMY_DB_PASSWORD<##!##>mysql<##!##><##!##>0">fluxflexサンプル</option>';
 	for (var i = 0;i < 10;i++) {
-		data = data + localStorage.getItem('connect_set' + i);
+		var connect_data = localStorage.getItem('connect_set' + i);
+		if (connect_data) {
+			data += connect_data;
+		}
 	}
 	$('#ip_select').html(data);
 }
