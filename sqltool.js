@@ -194,7 +194,7 @@ function ls_load(id) {
 	}
 	var data = localStorage.getItem(id);
 	if ($("#" + id).attr('type') === 'radio') {
-		$("input[name='" + id + "']").val(data);
+		$("input[name='" + id + "']").val([data]);
 	} else if ($("#" + id).attr('type') === 'checkbox') {
 		if (data === '1') {
 			$("#" + id).attr('checked', true);

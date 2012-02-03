@@ -202,14 +202,24 @@ function table_viewer($DB,$tbl_naiyo_sqlx,$col_dat){
 	}
 	$html_table_viewer.='</tr>';
 	
+	$html_table_viewer.=table_viewer_line($DB,$tbl_naiyo_sqlx);
+	
+	$html_table_viewer.='</table>';
+	
+	return $html_table_viewer;
+}
+
+
+function table_viewer_line($DB,$tbl_naiyo_sqlx){
+	$html_table_viewer_line='';
 	// テーブル中身 交互に色変え
 	$pdb=run_sql_query($DB,$tbl_naiyo_sqlx,'table_viewer');
 	$t=0;
 	while($data=$pdb->fetch(PDO::FETCH_ASSOC)){
 		$tr_back=($t%2==0)?"fff":"ddd";
 		// オンマウスで色を変える
-		$html_table_viewer.='<tr id="table_tr_'.$t.'"style="background-color:#'.$tr_back.';" onmouseover="this.style.backgroundColor=\'#9ff\'" onmouseout="this.style.backgroundColor=\'#'.$tr_back.'\'">';
-		$html_table_viewer.='<td><input type="checkbox" onclick="dbview_chk_toggle(\'#table_tr_'.$t.'\');"></td>';
+		$html_table_viewer_line.='<tr id="table_tr_'.$t.'"style="background-color:#'.$tr_back.';" onmouseover="this.style.backgroundColor=\'#9ff\'" onmouseout="this.style.backgroundColor=\'#'.$tr_back.'\'">';
+		$html_table_viewer_line.='<td><input type="checkbox" onclick="dbview_chk_toggle(\'#table_tr_'.$t.'\');"></td>';
 		
 		foreach($data as $dat){
 			if((int)$_POST["setting_value_limit"] != 0 && strlen($dat)>(int)$_POST["setting_value_limit"]){
@@ -218,15 +228,15 @@ function table_viewer($DB,$tbl_naiyo_sqlx,$col_dat){
 				$dat=htmlspecialchars($dat);
 			}
 			if($dat == ''){ $dat='&nbsp;'; }
-			$html_table_viewer.='<td style="white-space: nowrap;">'.$dat.'</td>';
+			$html_table_viewer_line.='<td style="white-space: nowrap;">'.$dat.'</td>';
 		}
-		$html_table_viewer.='</tr>';
+		$html_table_viewer_line.='</tr>';
 		$t++;
+		
+		// 200を最大数とする
+		if($t>200){ return $html_table_viewer_line; }
 	}
-	
-	$html_table_viewer.='</table>';
-	
-	return $html_table_viewer;
+	return $html_table_viewer_line;
 }
 
 function mes_info(){
