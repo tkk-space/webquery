@@ -22,7 +22,6 @@ if($_POST["type"] == "db_option"){
 	$mes='DBに接続しました';
 }else if($_POST["type"] == "tbl_option"){
 	$html[0] =tbl_option($DB);
-	$html[1] = db_info_html($DB);
 	$mes='DBを選択しました';
 }else if($_POST["type"] == "db_view"){
 	$col_dat=get_column_data($DB,$sqlx_limit);
@@ -309,18 +308,6 @@ function result_print($ary){
 function run_sql_query($DB,$sqlx,$err_mes=''){
 	$pdb=$DB->query($sqlx) or error_print("データベース実行エラー(".$err_mes.")：".error_disp($DB->errorInfo(),$sqlx),$sqlx,$DB);
 	return $pdb;
-}
-
-function db_info_html(){
-	$html='
-	<span style="font-weight:bold;font-size:large;">DIFF</span>
-	HOST:<input type="text" id="diff_connect_ip" name="diff_connect_ip" value="'.$_POST{'setting_connect_ip'}.'">
-	DB:<input type="text" id="diff_connect_db" name="diff_connect_db" value="">
-	USER:<input type="text" id="diff_connect_user" name="diff_connect_user" value="'.$_POST{'setting_connect_user'}.'">
-	PASS:<input type="password" id="diff_connect_pass" name="diff_connect_pass" value="'.$_POST{'setting_connect_pass'}.'">
-	<input type="button" value="DIFF" onclick="run_diff()">
-	';
-	return $html;
 }
 
 function diff_viewer($DB){
