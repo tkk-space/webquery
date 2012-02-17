@@ -274,8 +274,15 @@ function run_ajax(type, result_id, post_add) {
 				
 				$('#db_viewer').html('');
 				var ids = result_id.split(',');
-				for (i = 0;i < ids.length;i++) {
-					$('#' + ids[i]).html(ret[1 + i]);
+				if (ids.length === 0) {
+					// idがない場合は返り値として返す
+					return ret[2];
+				} else {
+					for (i = 0;i < ids.length;i++) {
+						// テキストエリア反映のためvalにも反映
+						$('#' + ids[i]).html(ret[1 + i]);
+						$('#' + ids[i]).val(ret[1 + i]);
+					}
 				}
 				
 			} else {
@@ -317,13 +324,13 @@ function connect_clear() {
 // 接続設定リスト初期化
 function connect_init() {
 	var data = '<option value="">HOST一覧(直接入力)</option>';
-	data += '<option value="DUMMY_DB_HOST<##!##>DUMMY_DB_USER<##!##>DUMMY_DB_PASSWORD<##!##>mysql<##!##><##!##>0">fluxflexサンプル</option>';
 	for (var i = 0;i < 10;i++) {
 		var connect_data = localStorage.getItem('connect_set' + i);
 		if (connect_data) {
 			data += connect_data;
 		}
 	}
+	data += '<option value="DUMMY_DB_HOST<##!##>DUMMY_DB_USER<##!##>DUMMY_DB_PASSWORD<##!##>mysql<##!##><##!##>0">fluxflexサンプル</option>';
 	$('#ip_select').html(data);
 }
 
@@ -537,6 +544,9 @@ function create_refa() {
 		refa = "ALTER " + table_type_name + table_name + " ADD " + col_name + " " + col_type + ";";
 	} else if (type === 'refa_coldel') {
 		refa = "ALTER " + table_type_name + table_name + " DROP " + col_name + ";";
+	} else if (type === 'refa_tblcre' && table_type === 'v') {
+		alert('まだ不完全');
+		refa = run_ajax('get_sql', '');
 	} else if (type === 'refa_tblcre') {
 		refa = "CREATE " + table_type_name + table_name + " (" + create_values + ");";
 	} else if (type === 'refa_tbldel') {
@@ -647,7 +657,7 @@ function page_sel(id, cmd) {
 // 実行ボタン押下時
 function run_query() {
 	run_ajax('query_run', 'db_viewer');
-	//$("#query").val('');
+	$("#view_opt").html('');
 	//$("#query").css('height', '60px');
 }
 

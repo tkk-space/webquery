@@ -14,7 +14,6 @@ $setting=array(
 
 $DB = create_db($setting);
 
-
 $sqlx='SELECT * FROM '.$_POST["tbl_select"];
 $sqlx_limit = $sqlx.create_query_limit();
 
@@ -56,9 +55,13 @@ if($_POST["type"] == "db_option"){
 		$html[2]=col_option($col_dat);
 	}
 	$mes='更新しました ';
+
+}else if($_POST["type"] == 'get_sql'){
+	$html[0]=get_sql($DB,$_POST["refarence"]);
+	$mes='SQLを取得';
+	
 }else if($_POST["type"] == 'diff'){
 	$html[0]=diff_viewer($DB);
-	$html[1]='abc';
 	$mes='比較しました ';
 }
 
@@ -114,8 +117,11 @@ function create_input($type,$value,$name,$other){
 
 // カウント・ページ数の計算
 function page_cnt($DB,$tbl_query){
-	$pdb=run_sql_query($DB,$tbl_query,'page_cnt');
+	$pdb=run_sql_query($DB,$tbl_query,__FUNCTION__);
 	$rows=$pdb->rowcount();
+	if($_POST["limit_num"]==0){
+		$_POST["limit_num"] = 1;
+	}
 	$page_num=ceil($rows/$_POST["limit_num"]);
 	$html_option_pages='';
 	for($i=1;$i<=$page_num;$i++){
@@ -127,10 +133,18 @@ function page_cnt($DB,$tbl_query){
 	return $dat;
 }
 
+//SQLを取得
+function get_sql($DB,$type) {
+	$get_sqlx=get_sql_query($type);
+	$pdb=run_sql_query($DB, $get_sqlx, __FUNCTION__);
+	$dat=$pdb->fetch(PDO::FETCH_ASSOC);
+	return $dat["definition"];
+}
+
 //DBを表示
 function db_option($DB) {
 	$db_sqlx=get_db_query();
-	$pdb=run_sql_query($DB,$db_sqlx,'db_option');
+	$pdb=run_sql_query($DB,$db_sqlx,__FUNCTION__);
 	$db_opt_html='<option value=""></option>';
 	while($row=$pdb->fetch()){
 		$selected='';
@@ -142,7 +156,7 @@ function db_option($DB) {
 
 function tbl_option($DB) {
 	$tbl_sqlx = get_tbl_query();
-	$pdb=run_sql_query($DB,$tbl_sqlx,$tbl_sqlx);
+	$pdb=run_sql_query($DB,$tbl_sqlx,__FUNCTION__);
 	
 	$type_rows=array();
 	$typ_color = array('r'=>'#FFF','v'=>'#AFA','i'=>'#c9c' ,'S'=>'#9cc'    );
@@ -168,7 +182,7 @@ function tbl_option($DB) {
 // カラムデータの取得
 function get_column_data($DB,$col_sqlx){
 	$ret=array();
-	$pdb=run_sql_query($DB,$col_sqlx,'get_column_data');
+	$pdb=run_sql_query($DB,$col_sqlx,__FUNCTION__);
 	$i = 0;
 	while ($column = $pdb->getColumnMeta($i)) {
 		$ret[$i]['name']=$column['name'];
@@ -213,13 +227,16 @@ function table_viewer($DB,$tbl_naiyo_sqlx,$col_dat){
 function table_viewer_line($DB,$tbl_naiyo_sqlx){
 	$html_table_viewer_line='';
 	// テーブル中身 交互に色変え
-	$pdb=run_sql_query($DB,$tbl_naiyo_sqlx,'table_viewer');
+	$pdb=run_sql_query($DB,$tbl_naiyo_sqlx,__FUNCTION__);
 	$t=0;
 	while($data=$pdb->fetch(PDO::FETCH_ASSOC)){
 		$tr_back=($t%2==0)?"fff":"ddd";
 		// オンマウスで色を変える
-		$html_table_viewer_line.='<tr id="table_tr_'.$t.'"style="background-color:#'.$tr_back.';" onmouseover="this.style.backgroundColor=\'#9ff\'" onmouseout="this.style.backgroundColor=\'#'.$tr_back.'\'">';
-		$html_table_viewer_line.='<td><input type="checkbox" onclick="dbview_chk_toggle(\'#table_tr_'.$t.'\');"></td>';
+		$mouse_over_html=' onmouseover="this.style.backgroundColor=\'#9ff\'" onmouseout="this.style.backgroundColor=\'#'.$tr_back.'\'" ';
+		$html_table_viewer_line.='<tr id="table_tr_'.$t.'"style="background-color:#'.$tr_back.';" >';
+		//$html_table_viewer_line.='<tr>';
+		// チェックボックスで色を変える
+		$html_table_viewer_line.='<td><input type="checkbox" onclick="dbview_chk_toggle(\'#table_tr_'.$t.'\');"'.$mouse_over_html.'></td>';
 		
 		foreach($data as $dat){
 			if((int)$_POST["setting_value_limit"] != 0 && strlen($dat)>(int)$_POST["setting_value_limit"]){
@@ -266,7 +283,7 @@ function mes_csv($mes,$sqlx_csv,$code=0){
 
 // わざとエラーを起こして画面上に表示
 function alert($mes){
-	print $mes; 
+	print var_dump($mes); 
 	exit;
 }
 
@@ -296,6 +313,7 @@ function run_sql_query($DB,$sqlx,$err_mes=''){
 
 function db_info_html(){
 	$html='
+	<span style="font-weight:bold;font-size:large;">DIFF</span>
 	HOST:<input type="text" id="diff_connect_ip" name="diff_connect_ip" value="'.$_POST{'setting_connect_ip'}.'">
 	DB:<input type="text" id="diff_connect_db" name="diff_connect_db" value="">
 	USER:<input type="text" id="diff_connect_user" name="diff_connect_user" value="'.$_POST{'setting_connect_user'}.'">
@@ -457,12 +475,6 @@ function error_disp($errinfo,$sqlx){
 }
 
 function create_db($setting){
-	$dsn = create_dsn($setting);
-	$DB = new PDO($dsn) or error_print('データベース接続エラー(.'.$_POST["setting_connect_name"].'.)',$diff_dsn);
-	return $DB;
-}
-
-function create_dsn($setting){
 	if(!$setting["dbtype"]){ $setting["dbtype"]='pgsql'; }
 	if(!$setting["port"]){ $setting["port"]='5432'; }
 	
@@ -473,13 +485,26 @@ function create_dsn($setting){
 	$dsn.=($setting["pass"])?' password='.$setting["pass"]:'';
 	$dsn.=($setting["port"])?' port='.$setting["port"]:'';
 	$dsn.=($setting["timeout"])?' connect_timeout='.$setting["timeout"]:'';
-	return $dsn;
+	
+	$DB = new PDO($dsn) or error_print('データベース接続エラー(.'.$_POST["setting_connect_name"].'.)',$dsn);
+	return $DB;
+}
+
+// SQLを取得するSQLを取得
+function get_sql_query($type) {
+	if($type == 'refa_tblcre'){
+		// viewが定義されているselect文
+		$query="SELECT definition FROM pg_views WHERE viewname = '".$_POST["tbl_select"]."'";
+	}
+	return $query;
 }
 
 function get_db_query(){
 	$query="SELECT datname FROM pg_database WHERE datname NOT IN ('template0','template1') ORDER BY datname;";
 	return $query;
 }
+
+
 
 function get_tbl_query(){
 	$query="
