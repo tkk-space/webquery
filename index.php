@@ -3,9 +3,12 @@ function key_radio_forms($id_name){
 	for($i=0;$i<7;$i++){
 		$key_code=$i+117;
 		$key_name='F'.(6+$i);
-		echo '<label>';
-		echo '<input type="radio" id="'.$id_name.'" name="'.$id_name.'" value="'.$key_code.'"  onchange="ls_save();"  />'.$key_name;
-		echo '</label>';
+		?>
+		<label>
+		<input type="radio" id="<?=$id_name?>" name="<?=$id_name?>" value="<?=$key_code?>"  onchange="ls_save('<?=$id_name?>');"/>
+			<?=$key_name?>
+		</label>
+		<?php
 	}
 }
 
@@ -13,20 +16,29 @@ function table_set_forms(){
 	$types=array('r'=>'table','v'=>'view','S'=>'sequence','i'=>'index');
 	foreach ($types as $key => $value) {
 		$checked=($key=='r')?'checked':'';
-		echo '<label><input type="checkbox" name="setting_tblsel_view_type[]"';
-		echo ' id="setting_tblsel_view_type_'.$key.'"';
-		echo ' onclick="ls_save(); tbl_type_change(\''.$key.'\')"';
-		echo ' value="'.$key.'" '.$checked.'/>'.$value;
-		echo '</label>';
+		$id='setting_tblsel_view_type_'.$key;
+		?>
+		<label>
+		<input type="checkbox" name="setting_tblsel_view_type[]" id="<?=$id?>" onclick="ls_save('<?=$id?>'); tbl_type_change('<?=$key?>')" value="<?=$key?>" <?=$checked?>/><?=$value?>
+		</label>
+		<?php
 	}
 }
 
 function limitnum_set_forms(){
 	$numlist=array('10','30','50','100','200');
 	foreach($numlist as $num){
-		echo '<label><input type="radio" id="limit_num" name="limit_num" value="'.$num.'"  onchange="ls_save();" checked />'.$num.'</label>';
+		?>
+		<label>
+			<input type="radio" id="limit_num" name="limit_num" value="<?=$num?>"  onchange="ls_save('limit_num');" checked /><?=$num?>
+		</label>
+		<?php
 	}
-	echo '<label><input type="radio" id="limit_num" name="limit_num" value=""  onchange="ls_save();" />無制限</label>';
+	?>
+	<label>
+		<input type="radio" id="limit_num" name="limit_num" value=""  onchange="ls_save('limit_num');" />無制限
+	</label>
+	<?php
 }
 ?>
 <html>
@@ -52,7 +64,7 @@ function limitnum_set_forms(){
 			<a style='font-size:small;color:white;margin-right:5px;margin-left:5px;' onclick="id_display_toggle('setting');" href="javascript:void(0);">設定</a>
 			
 			<!-- DBパンくずセレクト -->
-			<select id="ip_select" name="ip_select" size="1" type="text" onchange="run_host();">
+			<select id="connect_select" name="connect_select" size="1" type="text" onchange="run_host();">
 			</select>
 			<span id="" style="font-size: small;">></span>
 			<select id="db_select" name="db_select" size="1" type="text" onchange="run_db();">
@@ -121,7 +133,7 @@ function limitnum_set_forms(){
 				<tr>
 					<td style="text-align:right;">表示：</td>
 					<td>
-						<label><input type="checkbox" name="setting_view_debug" id="setting_view_debug" onchange="id_display_toggle('debug_panel');ls_save();" value="1"/>デバッグパネル</label>
+						<label><input type="checkbox" name="debug_panel_toggle" id="debug_panel_toggle" onchange="id_display_toggle('debug_panel');ls_save('debug_panel_toggle');" value="1"/>デバッグパネル</label>
 					</td>
 				</tr>
 				
@@ -140,7 +152,7 @@ function limitnum_set_forms(){
 				
 				<tr>
 					<td style="text-align:right;">省略文字数：</td>
-					<td><input id="setting_value_limit" name="setting_value_limit" size="2" type="text" onchange="ls_save();" value="100"/></td>
+					<td><input id="setting_value_limit" name="setting_value_limit" size="2" type="text" onchange="ls_save('setting_value_limit');" value="100"/></td>
 				</tr>
 				<tr>
 					<td style="text-align:right;">制限数：</td>
@@ -177,6 +189,18 @@ function limitnum_set_forms(){
 		
 		<div id="result" style="background-color:#ccc;padding:3px;">
 			<code class="sql" style="font-size:small;"><span id="syntax"></span></code>
+		</div>
+		
+		<!-- DIFFパネル -->
+		<div id="diff" style="display:none;">
+			<span style="font-weight:bold;font-size:large;">DIFF</span>
+			<select id="diff_connect_select" name="diff_connect_select" size="1" type="text" onchange="connect_load('diff_connect');">
+			</select>
+			HOST:<input type="text" id="diff_connect_ip" name="diff_connect_ip" value="">
+			DB:<input type="text" id="diff_connect_dbname" name="diff_connect_dbname" value="">
+			USER:<input type="text" id="diff_connect_user" name="diff_connect_user" value="">
+			PASS:<input type="password" id="diff_connect_pass" name="diff_connect_pass" value="">
+			<input type="button" value="DIFF" onclick="run_diff()">
 		</div>
 		
 		<!-- sql結果表示 -->

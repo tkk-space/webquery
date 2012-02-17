@@ -222,7 +222,7 @@ var mes_colors = ['#fff', '#faa', '#fff', '#cfc', '#cff', '#fc9', '#fcc'];
 
 // ajax処理
 function run_ajax(type, result_id, post_add) {
-	if ($('#ip_select').val() === "" && $('#db_select').val() === "") {
+	if ($('#connect_select').val() === "" && $('#db_select').val() === "") {
 		return false; 
 	}
 	var post = 'type=' + type + '&' + $("#fm").serialize() + '&' + post_add;
@@ -292,7 +292,7 @@ function run_ajax(type, result_id, post_add) {
 	});
 	
 	// 表示切替
-	if (($('#ip_select').val() !== '' && $('#db_select').val() !== 'reading...' && $('#db_select').val() !== '') || type === 'reload') {
+	if (($('#connect_select').val() !== '' && $('#db_select').val() !== 'reading...' && $('#db_select').val() !== '') || type === 'reload') {
 		$('#query').removeAttr('readonly');
 	} else {
 		$('#query').attr('readonly', 'readonly');
@@ -305,7 +305,6 @@ function run_ajax(type, result_id, post_add) {
 
 // 表示切替
 function id_display_toggle(id) {
-	id = id.replace('_toggle', '');
 	if ($("#" + id).css('display') === 'block' || $("#" + id).css('display') === 'inline') {
 		$("#" + id).css('display', 'none');
 	} else {
@@ -331,24 +330,28 @@ function connect_init() {
 		}
 	}
 	data += '<option value="DUMMY_DB_HOST<##!##>DUMMY_DB_USER<##!##>DUMMY_DB_PASSWORD<##!##>mysql<##!##><##!##>0">fluxflexサンプル</option>';
-	$('#ip_select').html(data);
+	$('#connect_select').html(data);
+	$('#diff_connect_select').html(data);
 }
 
 // 接続設定読込
-function connect_load() {
+function connect_load(id) {
 	// IP<##!##>ユーザー名<##!##>パスワード
-	var options = $('#ip_select option:selected').val().split('<##!##>');
-	$('#setting_connect_ip').val(options[0]);
-	$('#setting_connect_user').val(options[1]);
-	$('#setting_connect_pass').val(options[2]);
-	$('#setting_connect_db').val(options[3]);
-	$('#setting_connect_char').val(options[4]);
-	$('#setting_connect_name').val(options[5]);
+	var options = $('#' + id + '_select option:selected').val().split('<##!##>');
+	if (id === 'connect') {
+		id = 'setting_' + id;
+	}
+	$('#' + id + '_ip').val(options[0]);
+	$('#' + id + '_user').val(options[1]);
+	$('#' + id + '_pass').val(options[2]);
+	$('#' + id + '_db').val(options[3]);
+	$('#' + id + '_char').val(options[4]);
+	$('#' + id + '_name').val(options[5]);
 }
 
 // 接続設定削除
 function connect_del() {
-	var options = $('#ip_select option:selected').val().split('<##!##>');
+	var options = $('#connect_select option:selected').val().split('<##!##>');
 	localStorage.removeItem('connect_set' + options[6]);
 	alert('接続リストから' + options[6] + 'を削除しました');
 	connect_init();
@@ -397,7 +400,7 @@ function run_clean_query() {
 function run_reload() {
 	var i = 0;
 	var ids = '';
-	if ($('#ip_select').val() !== '') {
+	if ($('#connect_select').val() !== '') {
 		i++;
 		ids = 'db_select';
 		if ($('#db_select').val() !== '') {
@@ -433,6 +436,8 @@ function run_key(event) {
 function run_db() {
 	run_ajax('tbl_option', 'tbl_select,view_opt');
 	ls_save_html('db_select');
+	//diffパネルをだす
+	$('#diff').css('display', 'block');
 }
 
 // テーブル切り替え時
@@ -441,6 +446,8 @@ function run_tbl() {
 		run_ajax('db_view', 'db_viewer,view_opt,col_select');
 		ls_save('tbl_select');
 	}
+	//diffパネル消す
+	$('#diff').css('display', 'none');
 }
 
 // diff実行時
@@ -458,12 +465,15 @@ function run_host() {
 	$('#db_select').html('');
 	$('#tbl_select').html('');
 	$('#col_select').html('');
-	if ($('#ip_select option:selected').val() !== '') {
-		connect_load();
+	if ($('#connect_select option:selected').val() !== '') {
+		connect_load('connect');
 		run_ajax('db_option', 'db_select');
-		ls_save_html('ip_select');
+		ls_save_html('connect_select');
 	}
+	//diffパネル消す
+	$('#diff').css('display', 'none');
 }
+
 
 function remove_comma(str) {
 	str = str.replace(/^(\s*\,\s*)/, "");
@@ -721,10 +731,10 @@ $(document).ready(function () {
 	//接続リスト初期化
 	connect_init();
 	
-	//ls_load('ip_select');
+	//ls_load('connect_select');
 
 	/*
-	var default_ip = ls_load('ip_select');
+	var default_ip = ls_load('connect_select');
 	var default_db = ls_load('db_select');
 	var default_tbl = ls_load('tbl_select');
 	
