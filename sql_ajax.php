@@ -73,7 +73,7 @@ if($_POST["type"] == 'query_run'){
 	$sqlx_mes='';
 }
 
-$result=array_merge(array(mes_csv($mes,$sqlx_mes)),$html);
+$result=array_merge(array(mes_tsv($mes,$sqlx_mes)),$html);
 print result_print($result);
 
 $DB->disconnect;
@@ -265,8 +265,8 @@ function mes_info(){
 	return $mes_info;
 }
 
-function mes_csv($mes,$sqlx_csv,$code=0){
-	$mes_csv='';
+function mes_tsv($mes,$sqlx_csv,$code=0){
+	$mes_tsv='';
 	$mes_ary=array();
 	$mes_ary[0] = date("Y/m/d(D) H:i:s");
 	$mes_ary[1] = $mes;
@@ -275,9 +275,9 @@ function mes_csv($mes,$sqlx_csv,$code=0){
 	$mes_ary[4] = $code;	
 	
 	for($i=0;$i<count($mes_ary);$i++){
-		$mes_csv.=$mes_ary[$i].',';
+		$mes_tsv.=$mes_ary[$i]."\t";
 	}
-	return $mes_csv;
+	return $mes_tsv;
 }
 
 // わざとエラーを起こして画面上に表示
@@ -288,7 +288,7 @@ function alert($mes){
 
 function error_print($mes,$sqlx,$DB){
 	// 区切り文字を入れて200 OKとかの奴を最後にもっていく
-	$result=array(mes_csv($mes,$sqlx,1),'','','','','');
+	$result=array(mes_tsv($mes,$sqlx,1),'','','','','');
 	$DB->disconnect;
 	die(result_print($result));
 }

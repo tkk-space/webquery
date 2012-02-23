@@ -250,21 +250,21 @@ function run_ajax(type, result_id, post_add) {
 			
 			// 取得文字列（<##!##>が区切り文字）
 			// メッセージ文CSV<##!##>表示されるHTML1<##!##>HTML2..3..
-			// CSV:日付,info,メッセージ,クエリ
+			// TSV:日付,info,メッセージ,クエリ
 			var ret = html.split('<##!##>');
 			if (ret.length > 1) {
-				var mes_csv = (String)(ret[0]).split(',');
+				var mes_tsv = (String)(ret[0]).split('\t');
 				
 				// 色設定
-				var mes_color = mes_colors[mes_csv[4]];
-				var history_sql_val = text_clean(mes_csv[3].replace(/\'/g, "\\'"));
-				var history_sql = (mes_csv[3].length > 40)?mes_csv[3].substring(0, 40) + '...':mes_csv[3];
+				var mes_color = mes_colors[mes_tsv[4]];
+				var history_sql_val = text_clean(mes_tsv[3].replace(/\'/g, "\\'"));
+				var history_sql = (mes_tsv[3].length > 40)?mes_tsv[3].substring(0, 40) + '...':mes_tsv[3];
 				
 				// resultにsql表示
-				$('#syntax').html(mes_csv[3]);
+				$('#syntax').html(mes_tsv[3]);
 				
 				//メッセージ整形
-				var mes = '[' + mes_csv[0] + '] ' + ' ' + mes_csv[1] + ' ' + mes_csv[2];
+				var mes = '[' + mes_tsv[0] + '] ' + ' ' + mes_tsv[1] + ' ' + mes_tsv[2];
 				
 				// メッセージを追加
 				$('#message option:first-child').removeAttr('selected');
@@ -570,9 +570,6 @@ function create_refa() {
 	$("#query").html(refa);
 	$("#query").val(refa);
 	
-	// var query = $("#query").val().replace(/(^\s+)|(\s+$)/g, "") + '\n' + refa;
-	//$("#query").html(query);
-	//$("#query").val(query);
 	run_clean_query();
 }
 
