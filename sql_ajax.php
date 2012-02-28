@@ -1,82 +1,82 @@
 <?php
 
-$html = array();
-
-$setting=array(
-	"dbtype"=>$_POST["setting_connect_db"]
-	,"ip"=>$_POST["setting_connect_ip"]
-	,"port"=>$_POST["setting_connect_port"]
-	,"db"=>$_POST["db_select"]
-	,"user"=>$_POST["setting_connect_user"]
-	,"pass"=>$_POST["setting_connect_pass"]
-	,"timeout"=>3
-);
-
-$DB = create_db($setting);
-
-$sqlx='SELECT * FROM '.$_POST["tbl_select"];
-$sqlx_limit = $sqlx.create_query_limit();
-
-if($_POST["type"] == "db_option"){
-	$html[0] = db_option($DB);
-	$mes='DBに接続しました';
-}else if($_POST["type"] == "tbl_option"){
-	$html[0] =tbl_option($DB);
-	$mes='DBを選択しました';
-}else if($_POST["type"] == "db_view"){
-	$col_dat=get_column_data($DB,$sqlx_limit);
+	$html = array();
 	
-	$html[0] = table_viewer($DB,$sqlx_limit,$col_dat);
-	$html[1] = pager_view_opt($DB,$sqlx);
-	$html[2] = col_option($col_dat);
-	$mes='テーブルを表示しました';
-}else if($_POST["type"] == 'query_run'){
-	$sqlx=preg_replace("/\\\'/i","'",$_POST["query"]);
+	$setting=array(
+		"dbtype"=>$_POST["setting_connect_db"]
+		,"ip"=>$_POST["setting_connect_ip"]
+		,"port"=>$_POST["setting_connect_port"]
+		,"db"=>$_POST["db_select"]
+		,"user"=>$_POST["setting_connect_user"]
+		,"pass"=>$_POST["setting_connect_pass"]
+		,"timeout"=>3
+	);
 	
-	if(preg_match("/^[\s]*SELECT/i",$sqlx)){
-		$col_dat=get_column_data($DB,$sqlx);
-		$html[0] = table_viewer($DB,$sqlx,$col_dat);
-		$html[1] = pager_view_opt($DB,$sqlx);
-	}else{
-		run_sql_query($DB,$sqlx,'query_run');
-		$html[0].="実行しました<br><font color=\"#ff0000\">$sqlx</font><br>";
-	}
-	$mes='クエリを実行しました';
-}else if($_POST["type"] == 'reload'){
-	if($_POST["reload_num"] > 1){
-		$html[0]=db_option($DB);
-	}
-	if($_POST["reload_num"] > 2){
-		$html[1]=tbl_option($DB,$sqlx_limit);
-	}
-	if($_POST["reload_num"] > 3){
+	$DB = create_db($setting);
+	
+	$sqlx='SELECT * FROM '.$_POST["tbl_select"];
+	$sqlx_limit = $sqlx.create_query_limit();
+	
+	if($_POST["type"] == "db_option"){
+		$html[0] = db_option($DB);
+		$mes='DBに接続しました';
+	}else if($_POST["type"] == "tbl_option"){
+		$html[0] =tbl_option($DB);
+		$mes='DBを選択しました';
+	}else if($_POST["type"] == "db_view"){
 		$col_dat=get_column_data($DB,$sqlx_limit);
-		$html[2]=col_option($col_dat);
-	}
-	$mes='更新しました ';
-
-}else if($_POST["type"] == 'get_sql'){
-	$html[0]=get_sql($DB,$_POST["refarence"]);
-	$mes='SQLを取得';
+		
+		$html[0] = table_viewer($DB,$sqlx_limit,$col_dat);
+		$html[1] = pager_view_opt($DB,$sqlx);
+		$html[2] = col_option($col_dat);
+		$mes='テーブルを表示しました';
+	}else if($_POST["type"] == 'query_run'){
+		$sqlx=preg_replace("/\\\'/i","'",$_POST["query"]);
+		
+		if(preg_match("/^[\s]*SELECT/i",$sqlx)){
+			$col_dat=get_column_data($DB,$sqlx);
+			$html[0] = table_viewer($DB,$sqlx,$col_dat);
+			$html[1] = pager_view_opt($DB,$sqlx);
+		}else{
+			run_sql_query($DB,$sqlx,'query_run');
+			$html[0].="実行しました<br><font color=\"#ff0000\">$sqlx</font><br>";
+		}
+		$mes='クエリを実行しました';
+	}else if($_POST["type"] == 'reload'){
+		if($_POST["reload_num"] > 1){
+			$html[0]=db_option($DB);
+		}
+		if($_POST["reload_num"] > 2){
+			$html[1]=tbl_option($DB,$sqlx_limit);
+		}
+		if($_POST["reload_num"] > 3){
+			$col_dat=get_column_data($DB,$sqlx_limit);
+			$html[2]=col_option($col_dat);
+		}
+		$mes='更新しました ';
 	
-}else if($_POST["type"] == 'diff'){
-	$html[0]=diff_viewer($DB);
-	$mes='比較しました ';
-}
-
-// 結果表示
-if($_POST["type"] == 'query_run'){
-	$sqlx_mes=$sqlx;
-} else if($_POST["type"] == 'db_view'){
-	$sqlx_mes=$sqlx_limit;
-} else {
-	$sqlx_mes='';
-}
-
-$result=array_merge(array(mes_tsv($mes,$sqlx_mes)),$html);
-print result_print($result);
-
-$DB->disconnect;
+	}else if($_POST["type"] == 'get_sql'){
+		$html[0]=get_sql($DB,$_POST["refarence"]);
+		$mes='SQLを取得';
+		
+	}else if($_POST["type"] == 'diff'){
+		$html[0]=diff_viewer($DB);
+		$mes='比較しました ';
+	}
+	
+	// 結果表示
+	if($_POST["type"] == 'query_run'){
+		$sqlx_mes=$sqlx;
+	} else if($_POST["type"] == 'db_view'){
+		$sqlx_mes=$sqlx_limit;
+	} else {
+		$sqlx_mes='';
+	}
+	
+	$result=array_merge(array(mes_tsv($mes,$sqlx_mes)),$html);
+	print result_print($result);
+	
+	$DB->disconnect;
 
 function create_query_limit(){
 	$qr_limit='';
