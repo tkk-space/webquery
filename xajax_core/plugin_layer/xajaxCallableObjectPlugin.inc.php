@@ -14,7 +14,7 @@
 	@package xajax
 	@version $Id: xajaxCallableObjectPlugin.inc.php 362 2007-05-29 15:32:24Z calltoconstruct $
 	@copyright Copyright (c) 2005-2007 by Jared White & J. Max Wilson
-	@copyright Copyright (c) 2008-2010 by Joseph Woolley, Steffen Konerow, Jared White  & J. Max Wilson
+	@copyright Copyright (c) 2008-2009 by Joseph Woolley, Steffen Konerow, Jared White  & J. Max Wilson
 	@license http://www.xajaxproject.org/bsd_license.txt BSD License
 */
 
@@ -32,39 +32,39 @@ require dirname(__FILE__) . '/support/xajaxCallableObject.inc.php';
 /*
 	Class: xajaxCallableObjectPlugin
 */
-final class xajaxCallableObjectPlugin extends xajaxRequestPlugin
+class xajaxCallableObjectPlugin extends xajaxRequestPlugin
 {
 	/*
 		Array: aCallableObjects
 	*/
-	private $aCallableObjects;
+	var $aCallableObjects;
 
 	/*
 		String: sXajaxPrefix
 	*/
-	private $sXajaxPrefix;
+	var $sXajaxPrefix;
 	
 	/*
 		String: sDefer
 	*/
-	private $sDefer;
+	var $sDefer;
 	
-	private $bDeferScriptGeneration;
+	var $bDeferScriptGeneration;
 
 	/*
 		String: sRequestedClass
 	*/
-	private $sRequestedClass;
+	var $sRequestedClass;
 	
 	/*
 		String: sRequestedMethod
 	*/
-	private $sRequestedMethod;
+	var $sRequestedMethod;
 
 	/*
 		Function: xajaxCallableObjectPlugin
 	*/
-	public function __construct()
+	function xajaxCallableObjectPlugin()
 	{
 		$this->aCallableObjects = array();
 
@@ -84,7 +84,7 @@ final class xajaxCallableObjectPlugin extends xajaxRequestPlugin
 	/*
 		Function: configure
 	*/
-	public function configure($sName, $mValue)
+	function configure($sName, $mValue)
 	{
 		if ('wrapperPrefix' == $sName) {
 			$this->sXajaxPrefix = $mValue;
@@ -102,7 +102,7 @@ final class xajaxCallableObjectPlugin extends xajaxRequestPlugin
 	/*
 		Function: register
 	*/
-	public function register($aArgs)
+	function register($aArgs)
 	{
 		if (1 < count($aArgs))
 		{
@@ -110,7 +110,7 @@ final class xajaxCallableObjectPlugin extends xajaxRequestPlugin
 
 			if (XAJAX_CALLABLE_OBJECT == $sType)
 			{
-				$xco = $aArgs[1];
+				$xco =& $aArgs[1];
 
 //SkipDebug
 				if (false === is_object($xco))
@@ -120,8 +120,8 @@ final class xajaxCallableObjectPlugin extends xajaxRequestPlugin
 				}
 //EndSkipDebug
 
-				if (false === ($xco instanceof xajaxCallableObject))
-					$xco = new xajaxCallableObject($xco);
+				if (false === is_a($xco, 'xajaxCallableObject'))
+					$xco =& new xajaxCallableObject($xco);
 
 				if (2 < count($aArgs))
 					if (is_array($aArgs[2]))
@@ -129,7 +129,7 @@ final class xajaxCallableObjectPlugin extends xajaxRequestPlugin
 							foreach ($aValue as $sName => $sValue)
 								$xco->configure($sKey, $sName, $sValue);
 
-				$this->aCallableObjects[] = $xco;
+				$this->aCallableObjects[] =& $xco;
 
 				return $xco->generateRequests($this->sXajaxPrefix);
 			}
@@ -141,7 +141,7 @@ final class xajaxCallableObjectPlugin extends xajaxRequestPlugin
 	/*
 		Function: generateClientScript
 	*/
-	public function generateClientScript()
+	function generateClientScript()
 	{
 		if (false === $this->bDeferScriptGeneration || 'deferred' === $this->bDeferScriptGeneration)
 		{
@@ -174,7 +174,7 @@ final class xajaxCallableObjectPlugin extends xajaxRequestPlugin
 	/*
 		Function: canProcessRequest
 	*/
-	public function canProcessRequest()
+	function canProcessRequest()
 	{
 		if (NULL == $this->sRequestedClass)
 			return false;
@@ -187,19 +187,19 @@ final class xajaxCallableObjectPlugin extends xajaxRequestPlugin
 	/*
 		Function: processRequest
 	*/
-	public function processRequest()
+	function processRequest()
 	{
 		if (NULL == $this->sRequestedClass)
 			return false;
 		if (NULL == $this->sRequestedMethod)
 			return false;
 
-		$objArgumentManager = xajaxArgumentManager::getInstance();
+		$objArgumentManager =& xajaxArgumentManager::getInstance();
 		$aArgs = $objArgumentManager->process();
 
 		foreach (array_keys($this->aCallableObjects) as $sKey)
 		{
-			$xco = $this->aCallableObjects[$sKey];
+			$xco =& $this->aCallableObjects[$sKey];
 
 			if ($xco->isClass($this->sRequestedClass))
 			{
@@ -215,5 +215,5 @@ final class xajaxCallableObjectPlugin extends xajaxRequestPlugin
 	}
 }
 
-$objPluginManager = xajaxPluginManager::getInstance();
+$objPluginManager =& xajaxPluginManager::getInstance();
 $objPluginManager->registerPlugin(new xajaxCallableObjectPlugin(), 102);

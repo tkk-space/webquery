@@ -14,7 +14,7 @@
 	@package xajax
 	@version $Id: xajaxEvent.inc.php 362 2007-05-29 15:32:24Z calltoconstruct $
 	@copyright Copyright (c) 2005-2007 by Jared White & J. Max Wilson
-	@copyright Copyright (c) 2008-2010 by Joseph Woolley, Steffen Konerow, Jared White  & J. Max Wilson
+	@copyright Copyright (c) 2008-2009 by Joseph Woolley, Steffen Konerow, Jared White  & J. Max Wilson
 	@license http://www.xajaxproject.org/bsd_license.txt BSD License
 */
 
@@ -29,14 +29,14 @@ require_once dirname(__FILE__) . '/xajaxUserFunction.inc.php';
 	A container class which holds a reference to handler functions and configuration
 	options associated with a registered event.
 */
-final class xajaxEvent
+class xajaxEvent
 {
 	/*
 		String: sName
 		
 		The name of the event.
 	*/
-	private $sName;
+	var $sName;
 	
 	/*
 		Array: aConfiguration
@@ -44,7 +44,7 @@ final class xajaxEvent
 		Configuration / call options to be used when initiating a xajax request
 		to trigger this event.
 	*/
-	private $aConfiguration;
+	var $aConfiguration;
 	
 	/*
 		Array: aHandlers
@@ -52,14 +52,14 @@ final class xajaxEvent
 		A list of <xajaxUserFunction> objects associated with this registered
 		event.  Each of these functions will be called when the event is triggered.
 	*/
-	private $aHandlers;
+	var $aHandlers;
 	
 	/*
 		Function: xajaxEvent
 		
 		Construct and initialize this <xajaxEvent> object.
 	*/
-	public function __construct($sName)
+	function xajaxEvent($sName)
 	{
 		$this->sName = $sName;
 		$this->aConfiguration = array();
@@ -75,7 +75,7 @@ final class xajaxEvent
 		
 		string - the name of the event.
 	*/
-	public function getName()
+	function getName()
 	{
 		return $this->sName;
 	}
@@ -86,7 +86,7 @@ final class xajaxEvent
 		Sets/stores configuration options that will be used when generating
 		the client script that is sent to the browser.
 	*/
-	public function configure($sName, $mValue)
+	function configure($sName, $mValue)
 	{
 		$this->aConfiguration[$sName] = $mValue;
 	}
@@ -97,9 +97,9 @@ final class xajaxEvent
 		Adds a <xajaxUserFunction> object to the list of handlers that will
 		be fired when the event is triggered.
 	*/
-	public function addHandler($xuf)
+	function addHandler(&$xuf)
 	{
-		$this->aHandlers[] = $xuf;
+		$this->aHandlers[] =& $xuf;
 	}
 	
 	/*
@@ -114,7 +114,7 @@ final class xajaxEvent
 		sEventPrefix - (string):  The prefix prepended to the client script
 			function stub and <xajaxRequest> script.
 	*/
-	public function generateRequest($sXajaxPrefix, $sEventPrefix)
+	function generateRequest($sXajaxPrefix, $sEventPrefix)
 	{
 		$sEvent = $this->sName;
 		return new xajaxRequest("{$sXajaxPrefix}{$sEventPrefix}{$sEvent}");
@@ -126,7 +126,7 @@ final class xajaxEvent
  		Generates a block of javascript code that declares a stub function
  		that can be used to easily trigger the event from the browser.
  	*/
- 	public function generateClientScript($sXajaxPrefix, $sEventPrefix)
+ 	function generateClientScript($sXajaxPrefix, $sEventPrefix)
 	{
 		$sMode = '';
 		$sMethod = '';
@@ -152,9 +152,9 @@ final class xajaxEvent
 		
 		Called by the <xajaxEventPlugin> when the event has been triggered.
 	*/
-	public function fire($aArgs)
+	function fire($aArgs)
 	{
-		$objResponseManager = xajaxResponseManager::getInstance();
+		$objResponseManager =& xajaxResponseManager::getInstance();
 		
 		foreach (array_keys($this->aHandlers) as $sKey)
 			$this->aHandlers[$sKey]->call($aArgs);

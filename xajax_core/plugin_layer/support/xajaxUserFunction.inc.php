@@ -14,7 +14,7 @@
 	@package xajax
 	@version $Id: xajaxUserFunction.inc.php 362 2007-05-29 15:32:24Z calltoconstruct $
 	@copyright Copyright (c) 2005-2007 by Jared White & J. Max Wilson
-	@copyright Copyright (c) 2008-2010 by Joseph Woolley, Steffen Konerow, Jared White  & J. Max Wilson
+	@copyright Copyright (c) 2008-2009 by Joseph Woolley, Steffen Konerow, Jared White  & J. Max Wilson
 	@license http://www.xajaxproject.org/bsd_license.txt BSD License
 */
 
@@ -28,7 +28,7 @@
 	convert to using this class when you wish to register external functions or 
 	to specify call options as well.
 */
-final class xajaxUserFunction
+class xajaxUserFunction
 {
 	/*
 		String: sAlias
@@ -37,21 +37,21 @@ final class xajaxUserFunction
 		to call the same xajax enabled function with a different set of
 		call options from what was already registered.
 	*/
-	private $sAlias;
+	var $sAlias;
 	
 	/*
 		Object: uf
 		
 		A string or array which defines the function to be registered.
 	*/
-	private $uf;
+	var $uf;
 	
 	/*
 		String: sInclude
 		
 		The path and file name of the include file that contains the function.
 	*/
-	private $sInclude;
+	var $sInclude;
 	
 	/*
 		Array: aConfiguration
@@ -59,7 +59,7 @@ final class xajaxUserFunction
 		An associative array containing call options that will be sent to the
 		browser curing client script generation.
 	*/
-	private $aConfiguration;
+	var $aConfiguration;
 	
 	/*
 		Function: xajaxUserFunction
@@ -82,12 +82,9 @@ final class xajaxUserFunction
 			- a string:
 				the name of the function that is available at global scope (not in a 
 				class.
-		
-		$sInclude - deprecated syntax - use ->configure('include','/path/to/file'); instead
 		$sInclude - (string, optional):  The path and file name of the include file
 			that contains the class or function to be called.
 			
-		$aConfiguration - marked as deprecated - might become reactivated as argument #2
 		$aConfiguration - (array, optional):  An associative array of call options
 			that will be used when sending the request from the client.
 			
@@ -106,16 +103,14 @@ final class xajaxUserFunction
 				
 			$xajax->register(XAJAX_FUNCTION, $myUserFunction);				
 	*/
-	public function xajaxUserFunction($uf) // /*deprecated parameters */ $sInclude=NULL, $aConfiguration=array())
+	function xajaxUserFunction($uf, $sInclude=NULL, $aConfiguration=array())
 	{
 		$this->sAlias = '';
-		$this->uf = $uf;
+		$this->uf =& $uf;
+		$this->sInclude = $sInclude;
 		$this->aConfiguration = array();
-
-/*deprecated parameters */
-//		$this->sInclude = $sInclude;
-//		foreach ($aConfiguration as $sKey => $sValue)
-//			$this->configure($sKey, $sValue);
+		foreach ($aConfiguration as $sKey => $sValue)
+			$this->configure($sKey, $sValue);
 		
 		if (is_array($this->uf) && 2 < count($this->uf))
 		{
@@ -141,7 +136,7 @@ final class xajaxUserFunction
 		
 		string - the name of the function contained within this object.
 	*/
-	public function getName()
+	function getName()
 	{
 		// Do not use sAlias here!
 		if (is_array($this->uf))
@@ -154,12 +149,10 @@ final class xajaxUserFunction
 		
 		Call this to set call options for this instance.
 	*/
-	public function configure($sName, $sValue)
+	function configure($sName, $sValue)
 	{
 		if ('alias' == $sName)
 			$this->sAlias = $sValue;
-		if ('include' == $sName)
-			$this->sInclude = $sValue;
 		else
 			$this->aConfiguration[$sName] = $sValue;
 	}
@@ -171,7 +164,7 @@ final class xajaxUserFunction
 		of generating the javascript call to invoke this xajax enabled
 		function.
 	*/
-	public function generateRequest($sXajaxPrefix)
+	function generateRequest($sXajaxPrefix)
 	{
 		$sAlias = $this->getName();
 		if (0 < strlen($this->sAlias))
@@ -187,7 +180,7 @@ final class xajaxUserFunction
 		will generate the javascript function stub that is sent to the
 		browser on initial page load.
 	*/
-	public function generateClientScript($sXajaxPrefix)
+	function generateClientScript($sXajaxPrefix)
 	{
 		$sFunction = $this->getName();
 		$sAlias = $sFunction;
@@ -214,9 +207,9 @@ final class xajaxUserFunction
 		function, including an external file if needed and passing along 
 		the specified arguments.
 	*/
-	public function call($aArgs=array())
+	function call($aArgs=array())
 	{
-		$objResponseManager = xajaxResponseManager::getInstance();
+		$objResponseManager =& xajaxResponseManager::getInstance();
 		
 		if (NULL != $this->sInclude)
 		{
