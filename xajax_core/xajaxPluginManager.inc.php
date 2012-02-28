@@ -14,7 +14,7 @@
 	@package xajax
 	@version $Id: xajaxPluginManager.inc.php 362 2007-05-29 15:32:24Z calltoconstruct $
 	@copyright Copyright (c) 2005-2007 by Jared White & J. Max Wilson
-	@copyright Copyright (c) 2008-2010 by Joseph Woolley, Steffen Konerow, Jared White  & J. Max Wilson
+	@copyright Copyright (c) 2008-2009 by Joseph Woolley, Steffen Konerow, Jared White  & J. Max Wilson
 	@license http://www.xajaxproject.org/bsd_license.txt BSD License
 */
 
@@ -25,44 +25,44 @@ require(dirname(__FILE__) . '/xajaxPlugin.inc.php');
 /*
 	Class: xajaxPluginManager
 */
-final class xajaxPluginManager
+class xajaxPluginManager
 {
 	/*
 		Array: aRequestPlugins
 	*/
-	private $aRequestPlugins;
+	var $aRequestPlugins;
 	
 	/*
 		Array: aResponsePlugins
 	*/
-	private $aResponsePlugins;
+	var $aResponsePlugins;
 	
 	/*
 		Array: aConfigurable
 	*/
-	private $aConfigurable;
+	var $aConfigurable;
 	
 	/*
 		Array: aRegistrars
 	*/
-	private $aRegistrars;
+	var $aRegistrars;
 	
 	/*
 		Array: aProcessors
 	*/
-	private $aProcessors;
+	var $aProcessors;
 	
 	/*
 		Array: aClientScriptGenerators
 	*/
-	private $aClientScriptGenerators;
+	var $aClientScriptGenerators;
 	
 	/*
 		Function: xajaxPluginManager
 		
 		Construct and initialize the one and only xajax plugin manager.
 	*/
-	private function __construct()
+	function xajaxPluginManager()
 	{
 		$this->aRequestPlugins = array();
 		$this->aResponsePlugins = array();
@@ -84,7 +84,7 @@ final class xajaxPluginManager
 		object : a reference to the one and only instance of the
 			plugin manager.
 	*/
-	public static function &getInstance()
+	function &getInstance()
 	{
 		static $obj;
 		if (!$obj) {
@@ -101,7 +101,7 @@ final class xajaxPluginManager
 		Parameters:
 			$aFolders - (array): Array of folders to check for plugins
 	*/
-	public function loadPlugins($aFolders)
+	function loadPlugins($aFolders)
 	{
 		foreach ($aFolders as $sFolder) {
 			if (is_dir($sFolder))
@@ -138,12 +138,12 @@ final class xajaxPluginManager
 			the plugins.
 		
 	*/
-	private function _insertIntoArray(&$aPlugins, $objPlugin, $nPriority)
+	function _insertIntoArray(&$aPlugins, &$objPlugin, $nPriority)
 	{
 		while (isset($aPlugins[$nPriority]))
 			$nPriority++;
 		
-		$aPlugins[$nPriority] = $objPlugin;
+		$aPlugins[$nPriority] =& $objPlugin;
 	}
 	
 	/*
@@ -161,9 +161,9 @@ final class xajaxPluginManager
 		1000 thru 8999: User created plugins, typically, these plugins don't care about order
 		9000 thru 9999: Plugins that generally need to be last or near the end of the plugin list
 	*/
-	public function registerPlugin($objPlugin, $nPriority=1000)
+	function registerPlugin(&$objPlugin, $nPriority=1000)
 	{
-		if ($objPlugin instanceof xajaxRequestPlugin)
+		if (is_a($objPlugin, 'xajaxRequestPlugin'))
 		{
 			$this->_insertIntoArray($this->aRequestPlugins, $objPlugin, $nPriority);
 			
@@ -174,14 +174,14 @@ final class xajaxPluginManager
 				if (method_exists($objPlugin, 'processRequest'))
 					$this->_insertIntoArray($this->aProcessors, $objPlugin, $nPriority);
 		}
-		else if ( $objPlugin instanceof xajaxResponsePlugin)
+		else if (is_a($objPlugin, 'xajaxResponsePlugin'))
 		{
-			$this->aResponsePlugins[] = $objPlugin;
+			$this->aResponsePlugins[] =& $objPlugin;
 		}
 		else
 		{
 //SkipDebug
-			$objLanguageManager = xajaxLanguageManager::getInstance();
+			$objLanguageManager =& xajaxLanguageManager::getInstance();
 			trigger_error(
 				$objLanguageManager->getText('XJXPM:IPLGERR:01') 
 				. get_class($objPlugin) 
@@ -207,7 +207,7 @@ final class xajaxPluginManager
 		
 		See <xajax->canProcessRequest> for more information.
 	*/
-	public function canProcessRequest()
+	function canProcessRequest()
 	{
 		$bHandled = false;
 		
@@ -231,7 +231,7 @@ final class xajaxPluginManager
 		current request.  If the plugin processes the request, it will
 		return true.
 	*/
-	public function processRequest()
+	function processRequest()
 	{
 		$bHandled = false;
 		
@@ -259,7 +259,7 @@ final class xajaxPluginManager
 		sName - (string):  The name of the configuration setting to set.
 		mValue - (mixed):  The value to be set.
 	*/
-	public function configure($sName, $mValue)
+	function configure($sName, $mValue)
 	{
 		$aKeys = array_keys($this->aConfigurable);
 		sort($aKeys);
@@ -276,15 +276,15 @@ final class xajaxPluginManager
 		Parameters:
 		 $aArgs - (array) :
 	*/
-	public function register($aArgs)
+	function register($aArgs)
 	{
 		$aKeys = array_keys($this->aRegistrars);
 		sort($aKeys);
 		foreach ($aKeys as $sKey)
 		{
-			$objPlugin = $this->aRegistrars[$sKey];
-			$mResult = $objPlugin->register($aArgs);
-			if ( $mResult instanceof xajaxRequest )
+			$objPlugin =& $this->aRegistrars[$sKey];
+			$mResult =& $objPlugin->register($aArgs);
+			if (is_a($mResult, 'xajaxRequest'))
 				return $mResult;
 			if (is_array($mResult))
 				return $mResult;
@@ -293,7 +293,7 @@ final class xajaxPluginManager
 					return true;
 		}
 //SkipDebug
-		$objLanguageManager = xajaxLanguageManager::getInstance();
+		$objLanguageManager =& xajaxLanguageManager::getInstance();
 		trigger_error(
 			$objLanguageManager->getText('XJXPM:MRMERR:01') 
 			. print_r($aArgs, true)
@@ -310,7 +310,7 @@ final class xajaxPluginManager
 		is called only when the page is being loaded initially.  This is not 
 		called when processing a request.
 	*/
-	public function generateClientScript()
+	function generateClientScript()
 	{
 		$aKeys = array_keys($this->aClientScriptGenerators);
 		sort($aKeys);
@@ -319,7 +319,7 @@ final class xajaxPluginManager
 	}
 	
 	/*
-		Function: getResponsePlugin
+		Function: getPlugin
 		
 		Locate the specified response plugin by name and return
 		a reference to it if one exists.
@@ -330,39 +330,13 @@ final class xajaxPluginManager
 		Returns:
 			mixed : Returns plugin or false if not found.
 	*/
-	public function getResponsePlugin($sName)
+	function &getPlugin($sName)
 	{
 		$aKeys = array_keys($this->aResponsePlugins);
 		sort($aKeys);
 		foreach ($aKeys as $sKey)
-			if ( $this->aResponsePlugins[$sKey] instanceof  $sName )
+			if (is_a($this->aResponsePlugins[$sKey], $sName))
 				return $this->aResponsePlugins[$sKey];
-		$bFailure = false;
-		return $bFailure;
-	}
-
-	/*
-		Function: getRequestPlugin
-		
-		Locate the specified response plugin by name and return
-		a reference to it if one exists.
-		
-		Parameters:
-			$sName - (string): Name of the plugin.
-			
-		Returns:
-			mixed : Returns plugin or false if not found.
-	*/
-	public function getRequestPlugin($sName)
-	{
-		$aKeys = array_keys($this->aRequestPlugins);
-		sort($aKeys);
-		foreach ($aKeys as $sKey) {
-			if ( get_class($this->aRequestPlugins[$sKey]) ==  $sName ) {
-				return $this->aRequestPlugins[$sKey];
-			} 
-		}	
-
 
 		$bFailure = false;
 		return $bFailure;

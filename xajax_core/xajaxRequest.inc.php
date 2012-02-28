@@ -14,7 +14,7 @@
 	@package xajax
 	@version $Id: xajaxRequest.inc.php 362 2007-05-29 15:32:24Z calltoconstruct $
 	@copyright Copyright (c) 2005-2007 by Jared White & J. Max Wilson
-	@copyright Copyright (c) 2008-2010 by Joseph Woolley, Steffen Konerow, Jared White  & J. Max Wilson
+	@copyright Copyright (c) 2008-2009 by Joseph Woolley, Steffen Konerow, Jared White  & J. Max Wilson
 	@license http://www.xajaxproject.org/bsd_license.txt BSD License
 */
 
@@ -68,7 +68,7 @@ class xajaxRequest
 		
 		The name of the function.
 	*/
-	private $sName;
+	var $sName;
 	
 	/*
 		String: sQuoteCharacter
@@ -77,7 +77,7 @@ class xajaxRequest
 		that will be used during the generation of the javascript for
 		this function.  This can be set prior to calling <xajaxRequest->printScript>
 	*/
-	private $sQuoteCharacter;
+	var $sQuoteCharacter;
 	
 	/*
 		Array: aParameters
@@ -85,7 +85,7 @@ class xajaxRequest
 		An array of parameters that will be used to populate the argument list
 		for this function when the javascript is output in <xajaxRequest->printScript>	
 	*/
-	private $aParameters;
+	var $aParameters;
 	
 	/*
 		Function: xajaxRequest
@@ -94,7 +94,7 @@ class xajaxRequest
 		
 		sName - (string):  The name of this request.
 	*/
-	public function __construct($sName)
+	function xajaxRequest($sName)
 	{
 		$this->aParameters = array();
 		$this->sQuoteCharacter = '"';
@@ -107,7 +107,7 @@ class xajaxRequest
 		Call this to instruct the request to use single quotes when generating
 		the javascript.
 	*/
-	public function useSingleQuote()
+	function useSingleQuote()
 	{
 		$this->sQuoteCharacter = "'";
 	}
@@ -118,7 +118,7 @@ class xajaxRequest
 		Call this to instruct the request to use double quotes while generating
 		the javascript.
 	*/
-	public function useDoubleQuote()
+	function useDoubleQuote()
 	{
 		$this->sQuoteCharacter = '"';
 	}
@@ -128,7 +128,7 @@ class xajaxRequest
 		
 		Clears the parameter list associated with this request.
 	*/
-	public function clearParameters()
+	function clearParameters()
 	{
 		$this->aParameters = array();
 	}
@@ -144,7 +144,7 @@ class xajaxRequest
 		See Also:
 		See <xajaxRequest->setParameter> for details.
 	*/
-	public function addParameter()
+	function addParameter()
 	{
 		$aArgs = func_get_args();
 		
@@ -178,7 +178,7 @@ class xajaxRequest
 				javascript function call whose return value will become the parameter.
 				
 	*/
-	public function setParameter()
+	function setParameter()
 	{
 		$aArgs = func_get_args();
 		
@@ -249,7 +249,7 @@ class xajaxRequest
 		Returns a string representation of the script output (javascript) from 
 		this request object.  See also:  <xajaxRequest::printScript>
 	*/
-	public function getScript()
+	function getScript()
 	{
 		ob_start();
 		$this->printScript();
@@ -262,7 +262,7 @@ class xajaxRequest
 		Generates a block of javascript code that can be used to invoke
 		the specified xajax request.
 	*/
-	public function printScript()
+	function printScript()
 	{
 		echo $this->sName;
 		echo '(';

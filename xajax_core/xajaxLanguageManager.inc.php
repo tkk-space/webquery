@@ -16,7 +16,7 @@
 	@package xajax
 	@version $Id: xajaxLanguageManager.inc.php 362 2007-05-29 15:32:24Z calltoconstruct $
 	@copyright Copyright (c) 2005-2007 by Jared White & J. Max Wilson
-	@copyright Copyright (c) 2008-2010 by Joseph Woolley, Steffen Konerow, Jared White  & J. Max Wilson
+	@copyright Copyright (c) 2008-2009 by Joseph Woolley, Steffen Konerow, Jared White  & J. Max Wilson
 	@license http://www.xajaxproject.org/bsd_license.txt BSD License
 */
 
@@ -27,28 +27,28 @@
 	debug and error messages upon request; as well as the code used to load alternate
 	language text as requested via the <xajax::configure> function.
 */
-final class xajaxLanguageManager
+class xajaxLanguageManager
 {
 	/*
 		Array: aMessages
 		
 		An array of the currently registered languages.
 	*/
-	private $aMessages;
+	var $aMessages;
 	
 	/*
 		String: sLanguage
 		
 		The currently configured language.
 	*/
-	private $sLanguage;
+	var $sLanguage;
 	
 	/*
 		Function: xajaxLanguageManager
 		
 		Construct and initialize the one and only xajax language manager object.
 	*/
-	private function __construct()
+	function xajaxLanguageManager()
 	{
 		$this->aMessages = array();
 		
@@ -121,7 +121,7 @@ final class xajaxLanguageManager
 		Implements the singleton pattern: provides a single instance of the xajax 
 		language manager object to all object which request it.
 	*/
-	public static function &getInstance()
+	function &getInstance()
 	{
 		static $obj;
 		if (!$obj) {
@@ -140,7 +140,7 @@ final class xajaxLanguageManager
 		
 		- language (string, default 'en'): The currently selected language.
 	*/
-	public function configure($sName, $mValue)
+	function configure($sName, $mValue)
 	{
 		if ('language' == $sName) {
 			if ($mValue !== $this->sLanguage) {
@@ -162,7 +162,7 @@ final class xajaxLanguageManager
 		sLanguage - (string): the character code which represents the language being registered.
 		aMessages - (array): the array of translated debug and error messages
 	*/
-	public function register($sLanguage, $aMessages) {
+	function register($sLanguage, $aMessages) {
 		$this->aMessages[$sLanguage] = $aMessages;
 	}
 	
@@ -174,7 +174,7 @@ final class xajaxLanguageManager
 		
 		sMessage - (string):  A code indicating the message text being requested.
 	*/
-	public function getText($sMessage)
+	function getText($sMessage)
 	{
 		if (isset($this->aMessages[$this->sLanguage]))
 			 if (isset($this->aMessages[$this->sLanguage][$sMessage]))

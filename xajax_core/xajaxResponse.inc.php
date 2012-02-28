@@ -14,7 +14,7 @@
 	@package xajax
 	@version $Id: xajaxResponse.inc.php 361 2007-05-24 12:48:14Z calltoconstruct $
 	@copyright Copyright (c) 2005-2007 by Jared White & J. Max Wilson
-	@copyright Copyright (c) 2008-2010 by Joseph Woolley, Steffen Konerow, Jared White  & J. Max Wilson
+	@copyright Copyright (c) 2008-2009 by Joseph Woolley, Steffen Konerow, Jared White  & J. Max Wilson
 	@license http://www.xajaxproject.org/bsd_license.txt BSD License
 */
 
@@ -39,12 +39,16 @@
 */
 class xajaxResponse
 {
+	/**#@+
+	 * @access protected
+	 */
+	
 	/*
 		Array: aCommands
 		
 		Stores the commands that will be sent to the browser in the response.
 	*/
-	public  $aCommands;
+	var $aCommands;
 	
 	/*
 		String: sCharacterEncoding
@@ -52,15 +56,15 @@ class xajaxResponse
 		The name of the encoding method you wish to use when dealing with 
 		special characters.  See <xajax->setEncoding> for more information.
 	*/
-	private $sCharacterEncoding;
+	var $sCharacterEncoding;
 	
 	/*
 		Boolean: bOutputEntities
 		
 		Convert special characters to the HTML equivellent.  See also
-		<xajax->bOutputEntities> and <xajax->configure>.
+		<xajax->bOutputEntities> and <xajax->setFlag>.
 	*/
-	private $bOutputEntities;
+	var $bOutputEntities;
 	
 	/*
 		Mixed: returnValue
@@ -68,28 +72,27 @@ class xajaxResponse
 		A string, array or integer value to be returned to the caller when
 		using 'synchronous' mode requests.  See <xajax->setMode> for details.
 	*/
-	private $returnValue;
+	var $returnValue;
 	
 	/*
 		Object: objPluginManager
 		
 		A reference to the global plugin manager.
 	*/
-	private $objPluginManager;
+	var $objPluginManager;
 	
-	// sorry but this config is static atm
-	private $sContentType = 'application/json'; //'text/xml';
+	/**#@-*/
 	
 	/*
 		Constructor: xajaxResponse
 		
 		Create and initialize a xajaxResponse object.
 	*/
-	public function __construct()
+	function xajaxResponse()
 	{
 		//SkipDebug
 		if (0 < func_num_args()) {
-			$objLanguageManager = xajaxLanguageManager::getInstance();
+			$objLanguageManager =& xajaxLanguageManager::getInstance();
 			trigger_error(
 					$objLanguageManager->getText('XJXRSP:EDERR:01')
 					, E_USER_ERROR
@@ -99,34 +102,13 @@ class xajaxResponse
 		
 		$this->aCommands = array();
 		
-		$objResponseManager = xajaxResponseManager::getInstance();
+		$objResponseManager =& xajaxResponseManager::getInstance();
 		
 		$this->sCharacterEncoding = $objResponseManager->getCharacterEncoding();
 		$this->bOutputEntities = $objResponseManager->getOutputEntities();
-		$this->setResponseType($objResponseManager->getConfiguration('responseType'));
 		
-		$this->objPluginManager = xajaxPluginManager::getInstance();
+		$this->objPluginManager =& xajaxPluginManager::getInstance();
 	}
-	
-	function getResponseType()
-	{
-		return $this->sResponseType;
-	}
-
-	function setResponseType($sResponseType) {
-		
-		if (NULL == $sResponseType) return;
-		
-		$this->sResponseType = $sResponseType ;
-		
-		if ('XML' == $sResponseType) {
-			$this->setContentType('text/xml');
-		}
-		elseif ('JSON' == $sResponseType) {
-			$this->setContentType('application/json');
-		}
-	}
-	
 	
 	/*
 		Function: setCharacterEncoding
@@ -144,13 +126,12 @@ class xajaxResponse
 		
 		object - The xajaxResponse object.
 	*/
-	public function setCharacterEncoding($sCharacterEncoding)
+	function setCharacterEncoding($sCharacterEncoding)
 	{
 		$this->sCharacterEncoding = $sCharacterEncoding;
 		return $this;
 	}
-
-
+	
 	/*
 		Function: setOutputEntities
 		
@@ -165,7 +146,7 @@ class xajaxResponse
 		
 		object - The xajaxResponse object.
 	*/
-	public function setOutputEntities($bOutputEntities)
+	function setOutputEntities($bOutputEntities)
 	{
 		$this->bOutputEntities = (boolean)$bOutputEntities;
 		return $this;
@@ -194,14 +175,14 @@ class xajaxResponse
 		
 		object - The plugin specified by sName.
 	*/
-	public function plugin()
+	function &plugin()
 	{
 		$aArgs = func_get_args();
 		$nArgs = func_num_args();
 		
 		//SkipDebug
 		if (false == (0 < $nArgs)) {
-			$objLanguageManager = xajaxLanguageManager::getInstance();
+			$objLanguageManager =& xajaxLanguageManager::getInstance();
 			trigger_error(
 					$objLanguageManager->getText('XJXRSP:MPERR:01')
 					, E_USER_ERROR
@@ -211,7 +192,7 @@ class xajaxResponse
 		
 		$sName = array_shift($aArgs);
 		
-		$objPlugin = $this->objPluginManager->getResponsePlugin($sName);
+		$objPlugin =& $this->objPluginManager->getPlugin($sName);
 		
 		if (false === $objPlugin)
 		{
@@ -225,7 +206,7 @@ class xajaxResponse
 		{
 			$sMethod = array_shift($aArgs);
 			
-			$aFunction = array($objPlugin, $sMethod);
+			$aFunction = array(&$objPlugin, $sMethod);
 			call_user_func_array($aFunction, $aArgs);
 		}
 		
@@ -246,9 +227,9 @@ class xajaxResponse
 		
 		object - The plugin specified by sPluginName.
 	*/
-	public function __get($sPluginName)
+	function &__get($sPluginName)
 	{
-		$objPlugin = $this->plugin($sPluginName);
+		$objPlugin =& $this->plugin($sPluginName);
 		return $objPlugin;
 	}
 	
@@ -269,7 +250,7 @@ class xajaxResponse
 		
 		object : The xajaxResponse object.
 	*/
-	public function confirmCommands($iCmdNumber, $sMessage)
+	function confirmCommands($iCmdNumber, $sMessage)
 	{
 		return $this->addCommand(
 			array(
@@ -297,7 +278,7 @@ class xajaxResponse
 		object : The <xajaxResponse> object.
 		
 	*/
-	public function assign($sTarget,$sAttribute,$sData)
+	function assign($sTarget,$sAttribute,$sData)
 	{
 		return $this->addCommand(
 			array(
@@ -325,7 +306,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function append($sTarget,$sAttribute,$sData)
+	function append($sTarget,$sAttribute,$sData)
 	{	
 		return $this->addCommand(
 			array(
@@ -353,7 +334,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function prepend($sTarget,$sAttribute,$sData)
+	function prepend($sTarget,$sAttribute,$sData)
 	{
 		return $this->addCommand(
 			array(
@@ -378,7 +359,7 @@ class xajaxResponse
 		sSearch - (string):  The needle to search for.
 		sData - (string):  The data to use in place of the needle.
 	*/
-	public function replace($sTarget,$sAttribute,$sSearch,$sData)
+	function replace($sTarget,$sAttribute,$sSearch,$sData)
 	{
 		return $this->addCommand(
 			array(
@@ -408,7 +389,7 @@ class xajaxResponse
 		
 		object - The <xajaxResponse> object.
 	*/
-	public function clear($sTarget,$sAttribute)
+	function clear($sTarget,$sAttribute)
 	{
 		return $this->assign(
 			$sTarget,
@@ -434,7 +415,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function contextAssign($sAttribute, $sData)
+	function contextAssign($sAttribute, $sData)
 	{
 		return $this->addCommand(
 			array(
@@ -462,7 +443,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function contextAppend($sAttribute, $sData)
+	function contextAppend($sAttribute, $sData)
 	{
 		return $this->addCommand(
 			array(
@@ -490,7 +471,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function contextPrepend($sAttribute, $sData)
+	function contextPrepend($sAttribute, $sData)
 	{
 		return $this->addCommand(
 			array(
@@ -517,7 +498,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function contextClear($sAttribute)
+	function contextClear($sAttribute)
 	{
 		return $this->contextAssign(
 			$sAttribute, 
@@ -538,7 +519,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function alert($sMsg)
+	function alert($sMsg)
 	{
 		return $this->addCommand(
 			array(
@@ -548,7 +529,7 @@ class xajaxResponse
 			);
 	}
 	
-	public function debug($sMessage)
+	function debug($sMessage)
 	{
 		return $this->addCommand(
 			array(
@@ -574,7 +555,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function redirect($sURL, $iDelay=0)
+	function redirect($sURL, $iDelay=0)
 	{
 		//we need to parse the query part so that the values are rawurlencode()'ed
 		//can't just use parse_url() cos we could be dealing with a relative URL which
@@ -642,7 +623,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function script($sJS)
+	function script($sJS)
 	{
 		return $this->addCommand(
 			array(
@@ -667,7 +648,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function call() {
+	function call() {
 		$aArgs = func_get_args();
 		$sFunc = array_shift($aArgs);
 		return $this->addCommand(
@@ -692,7 +673,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function remove($sTarget)
+	function remove($sTarget)
 	{
 		return $this->addCommand(
 			array(
@@ -712,16 +693,24 @@ class xajaxResponse
 		sParent - (string):  The id of the parent element.
 		sTag - (string):  The tag name to be used for the new element.
 		sId - (string):  The id to assign to the new element.
- 
+		sType - (string, optional):  The type of tag, deprecated, use
+			<xajaxResponse->createInput> instead.
 			
 		Returns:
 		
 		object : The <xajaxResponse> object.
 	*/
-	
-	public function create($sParent, $sTag, $sId)
+	function create($sParent, $sTag, $sId, $sType=null)
 	{
- 
+		//SkipDebug
+		if (false === (null === $sType)) {
+			$objLanguageManager =& xajaxLanguageManager::getInstance();
+			trigger_error(
+					$objLanguageManager->getText('XJXRSP:CPERR:01')
+					, E_USER_WARNING
+					);
+		}
+		//EndSkipDebug
 		
 		return $this->addCommand(
 			array(
@@ -750,7 +739,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function insert($sBefore, $sTag, $sId)
+	function insert($sBefore, $sTag, $sId)
 	{
 		return $this->addCommand(
 			array(
@@ -779,7 +768,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function insertAfter($sAfter, $sTag, $sId)
+	function insertAfter($sAfter, $sTag, $sId)
 	{
 		return $this->addCommand(
 			array(
@@ -807,7 +796,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function createInput($sParent, $sType, $sName, $sId)
+	function createInput($sParent, $sType, $sName, $sId)
 	{
 		return $this->addCommand(
 			array(
@@ -838,15 +827,15 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function insertInput($sBefore, $sType, $sName, $sId)
+	function insertInput($sBefore, $sType, $sName, $sId)
 	{
 		return $this->addCommand(
 			array(
-				'cmd'=>'ii',
-				'id'=>$sBefore,
-				'prop'=>$sId,
-				'type'=>$sType
-				),
+					'cmd'=>'ii',
+					'id'=>$sBefore,
+					'prop'=>$sId,
+					'type'=>$sType
+					),
 			$sName
 			);
 	}
@@ -869,15 +858,15 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function insertInputAfter($sAfter, $sType, $sName, $sId)
+	function insertInputAfter($sAfter, $sType, $sName, $sId)
 	{
 		return $this->addCommand(
 			array(
-				'cmd'=>'iia',
-				'id'=>$sAfter,
-				'prop'=>$sId,
-				'type'=>$sType
-				),
+					'cmd'=>'iia',
+					'id'=>$sAfter,
+					'prop'=>$sId,
+					'type'=>$sType
+					),
 			$sName
 			);
 	}
@@ -897,14 +886,14 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function setEvent($sTarget,$sEvent,$sScript)
+	function setEvent($sTarget,$sEvent,$sScript)
 	{
 		return $this->addCommand(
 			array(
-				'cmd'=>'ev',
-				'id'=>$sTarget,
-				'prop'=>$sEvent
-				),
+					'cmd'=>'ev',
+					'id'=>$sTarget,
+					'prop'=>$sEvent
+					),
 			$sScript
 			);
 	}
@@ -930,7 +919,7 @@ class xajaxResponse
 		This function is depreciated and will be removed in a future version. 
 		Use <setEvent> instead.
 	*/	
-	public function addEvent($sTarget,$sEvent,$sScript)
+	function addEvent($sTarget,$sEvent,$sScript)
 	{
 		return $this->setEvent(
 			$sTarget,
@@ -956,8 +945,8 @@ class xajaxResponse
 		
 		object - The <xajaxResponse> object.
 	*/
-	public function addHandler($sTarget,$sEvent,$sHandler)
-	{
+	function addHandler($sTarget,$sEvent,$sHandler)
+	{	
 		return $this->addCommand(
 			array(
 					'cmd'=>'ah',
@@ -984,7 +973,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function removeHandler($sTarget,$sEvent,$sHandler)
+	function removeHandler($sTarget,$sEvent,$sHandler)
 	{
 		return $this->addCommand(
 			array(
@@ -1011,7 +1000,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function setFunction($sFunction, $sArgs, $sScript)
+	function setFunction($sFunction, $sArgs, $sScript)
 	{
 		return $this->addCommand(
 			array(
@@ -1044,7 +1033,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function wrapFunction($sFunction, $sArgs, $aScripts, $sReturnValueVariable)
+	function wrapFunction($sFunction, $sArgs, $aScripts, $sReturnValueVariable)
 	{
 		return $this->addCommand(
 			array(
@@ -1074,7 +1063,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function includeScript($sFileName, $sType = null, $sId = null)
+	function includeScript($sFileName, $sType = null, $sId = null)
 	{
 		$command = array('cmd' => 'in');
 		
@@ -1107,7 +1096,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function includeScriptOnce($sFileName, $sType = null, $sId = null)
+	function includeScriptOnce($sFileName, $sType = null, $sId = null)
 	{
 		$command = array('cmd' => 'ino');
 		
@@ -1141,7 +1130,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function removeScript($sFileName, $sUnload = '') {
+	function removeScript($sFileName, $sUnload = '') {
 		$this->addCommand(
 				array(
 					'cmd'=>'rjs',
@@ -1170,7 +1159,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function includeCSS($sFileName, $sMedia = null)
+	function includeCSS($sFileName, $sMedia = null)
 	{
 		$command = array('cmd' => 'css');
 		
@@ -1200,7 +1189,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function removeCSS($sFileName, $sMedia = null)
+	function removeCSS($sFileName, $sMedia = null)
 	{
 		$command = array('cmd'=>'rcss');
 		
@@ -1236,7 +1225,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function waitForCSS($iTimeout = 600) {
+	function waitForCSS($iTimeout = 600) {
 		$sData = "";
 		$this->addCommand(
 				array(
@@ -1269,7 +1258,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function waitFor($script, $tenths) {
+	function waitFor($script, $tenths) {
 		return $this->addCommand(
 			array(
 					'cmd'=>'wf',
@@ -1297,7 +1286,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function sleep($tenths) {
+	function sleep($tenths) {
 		$this->addCommand(
 				array(
 					'cmd'=>'s',
@@ -1306,101 +1295,6 @@ class xajaxResponse
 				''
 				);
 		return $this;
-	}
-	
-	public function domStartResponse()
-	{
-		$this->script('xjxElm = []');
-	}
-	
-	public function domCreateElement($variable, $tag)
-	{
-		return $this->addCommand(
-			array(
-					'cmd' => 'DCE',
-					'tgt' => $variable
-					),
-			$tag
-			);
-	}
-	
-	public function domSetAttribute($variable, $key, $value)
-	{
-		return $this->addCommand(
-			array(
-					'cmd' => 'DSA',
-					'tgt' => $variable,
-					'key' => $key
-					),
-			$value
-			);
-	}
-
-	public function domRemoveChildren($parent, $skip=null, $remove=null)
-	{
-		$command = array(
-			'cmd' => 'DRC'
-			);
-
-		if ($skip != null)
-			$command['skip'] = $skip;
-
-		if ($remove != null)
-			$command['remove'] = $remove;
-
-		return $this->addCommand(
-			$command,
-			$parent
-			);
-	}
-	
-	public function domAppendChild($parent, $variable)
-	{
-		return $this->addCommand(
-			array(
-				'cmd' => 'DAC',
-				'par' => $parent
-				),
-			$variable
-			);
-	}
-
-	public function domInsertBefore($target, $variable)
-	{
-		return $this->addCommand(
-			array(
-				'cmd' => 'DIB',
-				'tgt' => $target
-				),
-			$variable
-			);
-	}
-
-	public function domInsertAfter($target, $variable)
-	{
-		return $this->addCommand(
-			array(
-				'cmd' => 'DIA',
-				'tgt' => $target
-				),
-			$variable
-			);
-	}
-	
-	public function domAppendText($parent, $text)
-	{
-		return $this->addCommand(
-			array(
-					'cmd' => 'DAT',
-					'par' => $parent
-					),
-			$text
-			);
-	}
-	
-	public function domEndResponse()
-	{
-		$this->script('xjxElm = []');
 	}
 	
 	/*
@@ -1419,10 +1313,8 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function setReturnValue($value) {
-		
-
-		$this->returnValue = 'JSON' == $this->sResponseType ? $value : $this->_encodeArray($value)  ;
+	function setReturnValue($value) {
+		$this->returnValue = $this->_encodeArray($value);
 		return $this;
 	}
 	
@@ -1436,31 +1328,19 @@ class xajaxResponse
 		
 		string : The content type.
 	*/
-	public function getContentType()
+	function getContentType()
 	{
-		return $this->sContentType;
-	}
-
-	public function setContentType($sContentType)
-	{
-		$this->sContentType = $sContentType ;
+		return 'text/xml';
 	}
 	
 	/*
 		Function: getOutput
 	*/
-	public function getOutput()
+	function getOutput()
 	{
 		ob_start();
-		if ('text/xml' == $this->getContentType() ) {
-			$this->_printHeader_XML();
-			$this->_printResponse_XML();
-		} elseif ('application/json' == $this->getContentType() ) {
-			$this->_printResponse_JSON();
-			
-		} else {
-			//todo: trigger Error
-		};
+		$this->_printHeader_XML();
+		$this->_printResponse_XML();
 		return ob_get_clean();
 	}
 	
@@ -1474,18 +1354,11 @@ class xajaxResponse
 		
 		string : The textual representation of the response commands.
 	*/
-	public function printOutput()
+	function printOutput()
 	{
 		$this->_sendHeaders();
-		if ('text/xml' == $this->getContentType() ) {
-			$this->_printHeader_XML();
-			$this->_printResponse_XML();
-		} elseif ('application/json' == $this->getContentType() ) {
-			$this->_printResponse_JSON();
-			
-		} else {
-			//todo: trigger Error
-		}
+		$this->_printHeader_XML();
+		$this->_printResponse_XML();
 	}
 	
 	/*
@@ -1493,9 +1366,9 @@ class xajaxResponse
 		
 		Used internally to generate the response headers.
 	*/
-	public function _sendHeaders()
+	function _sendHeaders()
 	{
-		$objArgumentManager = xajaxArgumentManager::getInstance();
+		$objArgumentManager =& xajaxArgumentManager::getInstance();
 		if (XAJAX_METHOD_GET == $objArgumentManager->getRequestMethod())
 		{
 			header ("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
@@ -1521,13 +1394,13 @@ class xajaxResponse
 		
 		integer : The number of commands in the response.
 	*/
-	public function getCommandCount()
+	function getCommandCount()
 	{
 		return count($this->aCommands);
 	}
 	
 	/*
-		Function: appendResponse
+		Function: loadCommands
 		
 		Merges the response commands from the specified <xajaxResponse>
 		object with the response commands in this <xajaxResponse> object.
@@ -1539,9 +1412,9 @@ class xajaxResponse
 			of the list.
 			
 	*/
-	public function appendResponse($mCommands, $bBefore=false)
+	function loadCommands($mCommands, $bBefore=false)
 	{
-		if ( $mCommands instanceof xajaxResponse ) {
+		if (is_a($mCommands, 'xajaxResponse')) {
 			$this->returnValue = $mCommands->returnValue;
 			
 			if ($bBefore) {
@@ -1562,7 +1435,7 @@ class xajaxResponse
 			else {
 				//SkipDebug
 				if (!empty($mCommands)) {
-					$objLanguageManager = xajaxLanguageManager::getInstance();
+					$objLanguageManager =& xajaxLanguageManager::getInstance();
 					trigger_error(
 							$objLanguageManager->getText('XJXRSP:LCERR:01')
 							, E_USER_ERROR
@@ -1570,6 +1443,11 @@ class xajaxResponse
 				}
 				//EndSkipDebug
 			}
+	}
+	
+	function absorb($objResponse)
+	{
+		$this->loadCommands($objResponse);
 	}
 	
 	/*
@@ -1588,7 +1466,7 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> object.
 	*/
-	public function addPluginCommand($objPlugin, $aAttributes, $mData)
+	function addPluginCommand($objPlugin, $aAttributes, $mData)
 	{
 		$aAttributes['plg'] = $objPlugin->getName();
 		return $this->addCommand($aAttributes, $mData);
@@ -1610,54 +1488,11 @@ class xajaxResponse
 		
 		object : The <xajaxResponse> command.
 	*/
-	public function addCommand($aAttributes, $mData)
+	function addCommand($aAttributes, $mData)
 	{
-		if ('text/xml' == $this->getContentType()) $mData = $this->_encodeArray($mData);;
-		
-		/* merge commands if possible */
-		if ( in_array($aAttributes['cmd'],array('js','ap') ) )
-		{
-			if ($aLastCommand = array_pop($this->aCommands))
-			{
-				if ($aLastCommand['cmd'] == $aAttributes['cmd'])
-				{
-					if ('js' == $aLastCommand['cmd']) 
-					{
-						$mData = $aLastCommand['data'].'; '.$mData;
-					} 
-					elseif('ap' == $aLastCommand['cmd'] && $aLastCommand['id'] == $aAttributes['id'] && $aLastCommand['prop'] == $aAttributes['prop'])
-					{
-						$mData = $aLastCommand['data'].' '.$mData;
-					}
-					else
-					{
-						$this->aCommands[] = $aLastCommand;
-					}
-				} else {
-					$this->aCommands[] = $aLastCommand;
-				}
-			}
-		} 
-		$aAttributes['data'] = $mData;
+		$aAttributes['data'] = $this->_encodeArray($mData);
 		$this->aCommands[] = $aAttributes;
-
 		return $this;
-	}
-	
-	
-	private function _printResponse_JSON()
-	{
-		$response = array();
-		
-		if (null !== $this->returnValue)
-			$response['xjxrv'] = $this->returnValue;
-
-		$response['xjxobj'] = array();
-
-		foreach(array_keys($this->aCommands) as $sKey)
-			$response['xjxobj'][] = $this->aCommands[$sKey];
-
-		print json_encode($response);
 	}
 	
 	/*
@@ -1665,7 +1500,7 @@ class xajaxResponse
 		
 		Used internally to print XML start tag.
 	*/
-	private function _printHeader_XML()
+	function _printHeader_XML()
 	{
 		echo '<';
 		echo '?';
@@ -1687,7 +1522,7 @@ class xajaxResponse
 		
 		Used internally to generate the command output.
 	*/
-	public function _printResponse_XML()
+	function _printResponse_XML()
 	{
 		echo '<';
 		echo 'xjx>';
@@ -1720,7 +1555,7 @@ class xajaxResponse
 		aAttributes - (array):  Associative array of attributes for this
 			command.
 	*/
-	private function _printCommand_XML($aAttributes)
+	function _printCommand_XML(&$aAttributes)
 	{
 		echo '<';
 		echo 'cmd';
@@ -1736,7 +1571,7 @@ class xajaxResponse
 					echo $aAttributes[$sKey];
 					echo '"';
 				} else
-					$mData = $aAttributes[$sKey];
+					$mData =& $aAttributes[$sKey];
 			}
 		}
 		
@@ -1760,7 +1595,7 @@ class xajaxResponse
 		
 		mArray - (array):  Array to be converted.
 	*/
-	private function _printArray_XML($mArray) {
+	function _printArray_XML(&$mArray) {
 		if ('object' == gettype($mArray))
 			$mArray = get_object_vars($mArray);
 		
@@ -1780,7 +1615,7 @@ class xajaxResponse
 				foreach (array_keys($mArray[$sKey]) as $sInnerKey) {
 					//SkipDebug
 					if (htmlspecialchars($sInnerKey, ENT_COMPAT, 'UTF-8') != $sInnerKey) {
-						$objLanguageManager = xajaxLanguageManager::getInstance();
+						$objLanguageManager =& xajaxLanguageManager::getInstance();
 						trigger_error(
 								$objLanguageManager->getText('XJXRSP:AKERR:01')
 								, E_USER_ERROR
@@ -1799,7 +1634,7 @@ class xajaxResponse
 						echo '>';
 					} else {
 						//SkipDebug
-						$objLanguageManager = xajaxLanguageManager::getInstance();
+						$objLanguageManager =& xajaxLanguageManager::getInstance();
 						trigger_error(
 								$objLanguageManager->getText('XJXRSP:IEAERR:01')
 								, E_USER_ERROR
@@ -1812,7 +1647,7 @@ class xajaxResponse
 				echo '/e>';
 			} else {
 				//SkipDebug
-				$objLanguageManager = xajaxLanguageManager::getInstance();
+				$objLanguageManager =& xajaxLanguageManager::getInstance();
 				trigger_error(
 						$objLanguageManager->getText('XJXRSP:NEAERR:01')
 						, E_USER_ERROR
@@ -1842,7 +1677,7 @@ class xajaxResponse
 		
 		string : The escaped data.
 	*/
-	private function _printEscapedString_XML($sData)
+	function _printEscapedString_XML(&$sData)
 	{
 		if (is_null($sData) || false == isset($sData)) {
 			echo '*';
@@ -1852,7 +1687,7 @@ class xajaxResponse
 		if ($this->bOutputEntities) {
 			//SkipDebug
 			if (false === function_exists('mb_convert_encoding')) {
-				$objLanguageManager = xajaxLanguageManager::getInstance();
+				$objLanguageManager =& xajaxLanguageManager::getInstance();
 				trigger_error(
 						$objLanguageManager->getText('XJXRSP:MBEERR:01')
 						, E_USER_NOTICE
@@ -1860,10 +1695,7 @@ class xajaxResponse
 			}
 			//EndSkipDebug
 			
-			echo call_user_func_array(
-				'mb_convert_encoding', 
-				array($sData, 'HTML-ENTITIES', $this->sCharacterEncoding)
-				);
+			echo call_user_func_array('mb_convert_encoding', array(&$sData, 'HTML-ENTITIES', $this->sCharacterEncoding));
 			return;
 		}
 		
@@ -1947,7 +1779,7 @@ class xajaxResponse
 		
 		mixed : The object constructed from the data.
 	*/
-	private function _encodeArray($mData) {
+	function _encodeArray(&$mData) {
 		if ('object' === gettype($mData))
 			$mData = get_object_vars($mData);
 		
@@ -1968,103 +1800,103 @@ class xajaxResponse
 
 class xajaxCustomResponse
 {
-	protected $sOutput;
-	protected $sContentType;
+	var $sOutput;
+	var $sContentType;
 	
-	protected $sCharacterEncoding;
-	protected $bOutputEntities;
+	var $sCharacterEncoding;
+	var $bOutputEntities;
 	
 	function xajaxCustomResponse($sContentType)
 	{
 		$this->sOutput = '';
 		$this->sContentType = $sContentType;
 		
-		$objResponseManager = xajaxResponseManager::getInstance();
+		$objResponseManager =& xajaxResponseManager::getInstance();
 		
 		$this->sCharacterEncoding = $objResponseManager->getCharacterEncoding();
 		$this->bOutputEntities = $objResponseManager->getOutputEntities();
 	}
 	
-	public function setCharacterEncoding($sCharacterEncoding)
+	function setCharacterEncoding($sCharacterEncoding)
 	{
 		$this->sCharacterEncoding = $sCharacterEncoding;
 	}
 	
-	public function setOutputEntities($bOutputEntities)
+	function setOutputEntities($bOutputEntities)
 	{
 		$this->bOutputEntities = $bOutputEntities;
 	}
 	
-	public function clear()
+	function clear()
 	{
 		$this->sOutput = '';
 	}
 	
-	public function append($sOutput)
+	function append($sOutput)
 	{
 		$this->sOutput .= $sOutput;
 	}
 	
-	public function appendResponse($objResponse)
+	function absorb($objResponse)
 	{
 		//SkipDebug
-		if (false == ($objResponse instanceof xajaxCustomResponse )) {
-			$objLanguageManager = xajaxLanguageManager::getInstance();
+		if (false == is_a($objResponse, 'xajaxCustomResponse')) {
+			$objLanguageManager =& xajaxLanguageManager::getInstance();
 			trigger_error(
-				$objLanguageManager->getText('XJXRSP:MXRTERR')
-				, E_USER_ERROR
-				);
+					$objLanguageManager->getText('XJXRSP:MXRTERR')
+					, E_USER_ERROR
+					);
 		}
 		
 		if ($objResponse->getContentType() != $this->getContentType()) {
-			$objLanguageManager = xajaxLanguageManager::getInstance();
+			$objLanguageManager =& xajaxLanguageManager::getInstance();
 			trigger_error(
-				$objLanguageManager->getText('XJXRSP:MXCTERR')
-				, E_USER_ERROR
-				);
+					$objLanguageManager->getText('XJXRSP:MXCTERR')
+					, E_USER_ERROR
+					);
 		}
 		
 		if ($objResponse->getCharacterEncoding() != $this->getCharacterEncoding()) {
-			$objLanguageManager = xajaxLanguageManager::getInstance();
+			$objLanguageManager =& xajaxLanguageManager::getInstance();
 			trigger_error(
-				$objLanguageManager->getText('XJXRSP:MXCEERR')
-				, E_USER_ERROR
-				);
+					$objLanguageManager->getText('XJXRSP:MXCEERR')
+					, E_USER_ERROR
+					);
 		}
 		
 		if ($objResponse->getOutputEntities() != $this->getOutputEntities()) {
-			$objLanguageManager = xajaxLanguageManager::getInstance();
+			$objLanguageManager =& xajaxLanguageManager::getInstance();
 			trigger_error(
-				$objLanguageManager->getText('XJXRSP:MXOEERR')
-				, E_USER_ERROR
-				);
+					$objLanguageManager->getText('XJXRSP:MXOEERR')
+					, E_USER_ERROR
+					);
 		}
 		//EndSkipDebug
 		
 		$this->sOutput .= $objResponse->getOutput();
 	}
 	
-	public function getContentType()
+	function getContentType()
 	{
 		return $this->sContentType;
 	}
 	
-	public function getCharacterEncoding()
+	function getCharacterEncoding()
 	{
 		return $this->sCharacterEncoding;
 	}
 	
-	public function getOutputEntities()
+	function getOutputEntities()
 	{
 		return $this->bOutputEntities;
 	}
 	
-	public function getOutput()
+	function getOutput()
 	{
 		return $this->sOutput;
 	}
 	
-	public function printOutput()
+	function printOutput()
 	{
 		$sContentType = $this->sContentType;
 		$sCharacterSet = $this->sCharacterEncoding;
