@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 
 
 
@@ -237,11 +237,11 @@ function run_ajax(type, result_id, post_add) {
 	
 	// （デバッグ用）POSTデータ表示させる
 	$('#postview').html(post.replace(/\&/g, "\n&"));
-	
+	//alert(post);
 	// ajax処理
 	$.ajax({
 		type: "POST",
-		url: "sql_ajax.php",
+		url: "./ajax",
 		data: post,
 		success: function (html) {
 			if (type === 'tbl_option') {
