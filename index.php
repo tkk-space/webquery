@@ -1,12 +1,12 @@
 <?php
-require 'Slim/Slim.php';
+require './slim/Slim.php';
 
 ini_set('error_reporting',E_ERROR | E_WARNING | E_PARSE);
 
 $app = new Slim();
 
-function ajax(){
-	$html = array();
+// 初期化作業
+function db_init(){
 	$setting=array(
 		"dbtype"=>$_POST["setting_connect_db"]
 		,"ip"=>$_POST["setting_connect_ip"]
@@ -16,18 +16,22 @@ function ajax(){
 		,"pass"=>$_POST["setting_connect_pass"]
 		,"timeout"=>3
 	);
-	
-	$DB = create_db($setting);
-	
+	return create_db($setting);
+}
+
+function ajax(){
+	$DB = db_init();
+	$html = array();
 	$sqlx='SELECT * FROM '.$_POST["tbl_select"];
 	$sqlx_limit = $sqlx.create_query_limit();
-	
 	if($_POST["type"] == "db_option"){
 		$html[0] = db_option($DB);
 		$mes='DBに接続しました';
+		
 	}else if($_POST["type"] == "tbl_option"){
 		$html[0] =tbl_option($DB);
 		$mes='DBを選択しました';
+		
 	}else if($_POST["type"] == "db_view"){
 		$col_dat=get_column_data($DB,$sqlx_limit);
 		
@@ -37,14 +41,19 @@ function ajax(){
 		$mes='テーブルを表示しました';
 	}else if($_POST["type"] == 'query_run'){
 		$sqlx=preg_replace("/\\\'/i","'",$_POST["query"]);
-		
-		if(preg_match("/^[\s]*SELECT/i",$sqlx)){
-			$col_dat=get_column_data($DB,$sqlx);
-			$html[0] = table_viewer($DB,$sqlx,$col_dat);
-			$html[1] = pager_view_opt($DB,$sqlx);
-		}else{
-			run_sql_query($DB,$sqlx,'query_run');
-			$html[0].="実行しました<br><font color=\"#ff0000\">$sqlx</font><br>";
+		$sqlxs=preg_split('/;/',$sqlx);
+		foreach ($sqlxs as $k => $sql ){
+			if(trim($sql)!=''){
+				$sql.=';';
+				if(preg_match("/^[\s]*SELECT/i",$sql)){
+					$col_dat=get_column_data($DB,$sql);
+					$html[0].= table_viewer($DB,$sql,$col_dat);
+					$html[1].= pager_view_opt($DB,$sql);
+				}else{
+					run_sql_query($DB,$sql,'query_run');
+					$html[0].="<font color=\"#ff0000\">$sql</font><br>";
+				}
+			}
 		}
 		$mes='クエリを実行しました';
 	}else if($_POST["type"] == 'reload'){
@@ -77,13 +86,15 @@ function ajax(){
 	} else {
 		$sqlx_mes='';
 	}
-	
-	$result=array_merge(array(mes_tsv($mes,$sqlx_mes)),$html);
-	print result_print($result);
-	
-	$DB->disconnect;
+	ajax_end($mes,$sqlx_mes,$html);
 }
 
+// 終了作業
+function ajax_end($mes,$sqlx_mes,$html){
+	$result=array_merge(array(mes_tsv($mes,$sqlx_mes)),$html);
+	print result_print($result);
+	$DB->disconnect;
+}
 
 function create_query_limit(){
 	$qr_limit='';
@@ -205,7 +216,14 @@ function col_option($col_dat){
 	$col_html.= "<option></option>";
 	for($i=0;$i<$col_dat['total_num'];$i++){
 		$selected=($_POST["col_select"] == $col_dat[$i]['name'])?"selected":'';
-		$col_html.='<option value="'.$col_dat[$i]['name'].'" '.$selected.'>'.$col_dat[$i]['name'].' ('.$col_dat[$i]['native_type'].')</option>';
+		
+		$col_html.='<option value="'.$col_dat[$i]['name'].'" '.$selected.'>';
+		// 名前 (型) [デフォルト値] <制約>
+		$col_html.=$col_dat[$i]['name'];
+		$col_html.='('.$col_dat[$i]['native_type'].')';
+		//$col_html.='['.$col_dat[$i]['native_type'].']';
+		//$col_html.='<'.$col_dat[$i]['native_type'].'>';
+		$col_html.='</option>';
 	}
 	return $col_html;
 }
@@ -229,7 +247,6 @@ function table_viewer($DB,$tbl_naiyo_sqlx,$col_dat){
 	return $html_table_viewer;
 }
 
-
 function table_viewer_line($DB,$tbl_naiyo_sqlx){
 	$html_table_viewer_line='';
 	// テーブル中身 交互に色変え
@@ -239,11 +256,10 @@ function table_viewer_line($DB,$tbl_naiyo_sqlx){
 		$tr_back=($t%2==0)?"fff":"ddd";
 		// オンマウスで色を変える
 		$mouse_over_html=' onmouseover="this.style.backgroundColor=\'#9ff\'" onmouseout="this.style.backgroundColor=\'#'.$tr_back.'\'" ';
-		$html_table_viewer_line.='<tr id="table_tr_'.$t.'"style="background-color:#'.$tr_back.';" >';
+		$html_table_viewer_line.='<tr id="table_tr_'.$t.'"style="background-color:#'.$tr_back.';" '.$mouse_over_html.'>';
 		//$html_table_viewer_line.='<tr>';
 		// チェックボックスで色を変える
-		$html_table_viewer_line.='<td><input type="checkbox" onclick="dbview_chk_toggle(\'#table_tr_'.$t.'\');"'.$mouse_over_html.'></td>';
-		
+		$html_table_viewer_line.='<td><input type="checkbox" onclick="dbview_chk_toggle(\'#table_tr_'.$t.'\');"></td>';
 		foreach($data as $dat){
 			if((int)$_POST["setting_value_limit"] != 0 && strlen($dat)>(int)$_POST["setting_value_limit"]){
 				$dat='<a style="color:#000066;" href="javascript:void(0);" title="'.htmlspecialchars($dat).'">'.substr(htmlspecialchars($dat),0,(int)$_POST["setting_value_limit"]).'...</a>';
@@ -499,7 +515,6 @@ function get_db_query(){
 }
 
 
-
 function get_tbl_query(){
 	$query="
 		SELECT c.relname,c.relkind,reltuples as rows,pg_relation_size(relname::regclass)
@@ -534,7 +549,6 @@ function get_tbl_info_query($table_name){
 
 	return $query;
 }
-
 
 function key_radio_forms($id_name){
 	$html='';
@@ -579,12 +593,11 @@ function limitnum_set_forms(){
 	return $html;
 }
 
-
 function main(){
-		$header = <<<EOT
+		$header = '
 <!DOCTYPE html><html><head>
 	<meta charset="utf-8"/>
-	<title id="title">WebQuery</title>
+	<title id="title">WebQuery ['.$_SERVER['SERVER_NAME'].']</title>
 	<style type="text/css">
 	<!--
 		.tbl_list {
@@ -597,8 +610,7 @@ function main(){
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 	<script type="text/javascript" src="jquery-1.6.1.min.js"></script>
 	<script type="text/javascript" src="webquery.js"></script>
-</head>
-EOT;
+</head>';
 
 	$html_start = <<<EOT
 <body id="body">
@@ -616,7 +628,7 @@ $connect = <<<EOT
 			<select id="db_select" name="db_select" size="1" type="text" onchange="run_db();">
 				<option value="">DB一覧</option>
 			</select>
-			<span id="" style="font-size: small;">></span>
+			<span id="" style="font-size: small;"><a style="color:white;" href="javascript:void(0);" onclick="run_tbl();">></a></span>
 			<select id="tbl_select" title="括弧内のカウント数はバキューム等をしないと正確になりません" name="tbl_select" size="1" type="text" onclick="" onchange="run_tbl();">
 			<option value="">テーブル一覧</option>
 			</select>
@@ -638,6 +650,8 @@ $connect = <<<EOT
 				<option value='refa_rowdel' style="background:#fcc;">行削除</option>
 				<option value='refa_coldel' style="background:#fcc;">列削除</option>
 				<option value='refa_dbdel'  style="background:#fcc;">DB削除</option>
+				<option value='refa_css'    style="background:#FFF;">CSV生成</option>
+				<option value='refa_csstbl' style="background:#cff;">表内容CSV</option>
 			</select>
 			]</span>
 			<a style="font-size:small;color:white;margin-right:5px;margin-left:5px;" href="javascript:void(0);" onclick="run_reload();">更新</a>
@@ -646,20 +660,18 @@ $connect = <<<EOT
 		</div>
 EOT;
 		
-		$key_list='';
+		$config_key_list='';
 		$key_forms_name=array('実行'=>'setting_key_run','整形'=>'setting_key_crean','更新'=>'setting_key_update','設定'=>'setting_key_conf');
 		foreach($key_forms_name as $key=>$value){
-			$key_list.='<tr><td style="text-align:right;">'.$key.':</td><td>'.key_radio_forms($value).'</td></tr>';
+			$config_key_list.='<tr><td style="text-align:right;">'.$key.':</td><td>'.key_radio_forms($value).'</td></tr>';
 		}
-		$limit_num='<tr><td style="text-align:right;">制限数：</td><td>'.limitnum_set_forms().'</td></tr>';
-		
-			
-		$config = '
+		$config_limit_num='<tr><td style="text-align:right;">制限数：</td><td>'.limitnum_set_forms().'</td></tr>';
+		$config_table_type='<tr><td style="text-align:right;">テーブルリスト内容：</td><td>'.table_set_forms().'</td></tr>';
+		$config = <<<EOT
 		<!-- 設定パネル start -->
 		<div id="setting" name="setting" style="display:none;font-size:small;">
 			<table style="font-size:small;background-color:#ccc;width:100%;">
 				<tr>
-				
 					<td style="text-align:right;">接続設定：</td>
 					<td>
 					
@@ -693,20 +705,18 @@ EOT;
 						<label><input type="checkbox" name="debug_panel_toggle" id="debug_panel_toggle" onchange="id_display_toggle(\'debug_panel\');ls_save(\'debug_panel_toggle\');" value="1"/>デバッグパネル</label>
 					</td>
 				</tr>
-				'.$key_list.'
 				<tr>
 					<td style="text-align:right;">省略文字数：</td>
 					<td><input id="setting_value_limit" name="setting_value_limit" size="2" type="text" onchange="ls_save(\'setting_value_limit\');" value="100"/></td>
 				</tr>
-				'.$limit_num.'
-				<tr>
-					<td style="text-align:right;">テーブルリスト内容：</td>
-					<td>'.table_set_forms().'</td>
-				</tr>
+EOT;
+				$config.=$config_key_list.$config_limit_num.$config_table_type;
+				$config.=<<<EOT
 			</table>
 		</div>
 		<div style="clear:both;" />
-		<!-- 設定パネル end -->';
+		<!-- 設定パネル end -->
+EOT;
 
 $debug = <<<EOT
 		<!-- デバッグパネル -->
@@ -773,25 +783,12 @@ EOT;
 $app->get('/', 'main');
 $app->post('/ajax', 'ajax');
 
-/*
-//POST route
-$app->post('/post', 'post');
-function post() {
-	echo 'This is a POST route';
-}
-
-//PUT route
-$app->put('/put', 'put');
-function put() {
-	echo 'This is a PUT route';
-}
-
-//DELETE route
-$app->delete('/delete', 'delete');
-
-function delete() {
-	echo 'This is a DELETE route';
-}
-*/
+$app->post('/db_option', 'ajax_db_option');
+$app->post('/tbl_option', 'ajax_tbl_option');
+$app->post('/db_view', 'ajax_db_view');
+$app->post('/query_run', 'ajax_query_run');
+$app->post('/reload', 'ajax_reload');
+$app->post('/get_sql', 'ajax_get_sql');
+$app->post('/diff', 'ajax_diff');
 
 $app->run();

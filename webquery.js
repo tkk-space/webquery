@@ -329,7 +329,7 @@ function connect_init() {
 			data += connect_data;
 		}
 	}
-	data += '<option value="DUMMY_DB_HOST<##!##>DUMMY_DB_USER<##!##>DUMMY_DB_PASSWORD<##!##>mysql<##!##><##!##>0">fluxflexサンプル</option>';
+	// data += '<option value="DUMMY_DB_HOST<##!##>DUMMY_DB_USER<##!##>DUMMY_DB_PASSWORD<##!##>mysql<##!##><##!##>0">fluxflexサンプル</option>';
 	$('#connect_select').html(data);
 	$('#diff_connect_select').html(data);
 }
@@ -526,7 +526,7 @@ function create_refa() {
 	var ins_names = csv_to_array(col_names);
 	var ins_types = csv_to_array(col_types);
 	for (var i = 0;i < ins_types.length;i++) {
-		create_values += ins_names[i] + ' ' + ins_types[i] + ', ';
+		create_values += ins_names[i] + ' ' + ins_types[i] + ' DEFAULT NULL, ';
 	}
 	create_values = remove_comma(create_values);
 	
@@ -551,12 +551,11 @@ function create_refa() {
 	} else if (type === 'refa_rowdel') {
 		refa = "DELETE FROM " + table_name + " WHERE " + col_name + " ='';";
 	} else if (type === 'refa_colcre') {
-		refa = "ALTER " + table_type_name + table_name + " ADD " + col_name + " " + col_type + ";";
+		refa = "ALTER " + table_type_name + table_name + " ADD " + col_name + " " + col_type + " DEFAULT NULL;";
 	} else if (type === 'refa_coldel') {
 		refa = "ALTER " + table_type_name + table_name + " DROP " + col_name + ";";
 	} else if (type === 'refa_tblcre' && table_type === 'v') {
-		alert('まだ不完全');
-		refa = run_ajax('get_sql', '');
+		refa = run_ajax('get_view_sql', '');
 	} else if (type === 'refa_tblcre') {
 		refa = "CREATE " + table_type_name + table_name + " (" + create_values + ");";
 	} else if (type === 'refa_tbldel') {
@@ -565,6 +564,8 @@ function create_refa() {
 		refa = "CREATE DATABASE " + db_name + ";";
 	} else if (type === 'refa_dbdel') {
 		refa = "DROP DATABASE " + db_name + ";";
+	} else if (type === 'refa_csstbl') {
+		refa = run_ajax('get_table_css', '');
 	}
 	
 	$("#query").html(refa);
@@ -695,19 +696,8 @@ function load_display_toggle(id) {
 	}
 }
 
-
-
 // 初期化処理
 $(document).ready(function () {
-	// クライアントIP取得
-	$.getJSON('http://jsonip.appspot.com?callback=?', function (data) {
-		var ip = data.ip;
-		$('#ip').text(ip);
-	});
-	
-	// タイトル更新
-	$('#title').html('WebQuery [' + location.hostname + ']');
-	
 	ls_load('setting_tblsel_view_type_r');
 	ls_load('setting_tblsel_view_type_v');
 	ls_load('setting_tblsel_view_type_s');
@@ -730,36 +720,6 @@ $(document).ready(function () {
 	
 	//ls_load('connect_select');
 
-	/*
-	var default_ip = ls_load('connect_select');
-	var default_db = ls_load('db_select');
-	var default_tbl = ls_load('tbl_select');
-	
-		
-	if (default_db !== '') {
-		run_ajax('db_option', 'db_select');
-		run_ajax('tbl_option', 'tbl_select');
-	} else if (default_ip !== '') {
-		run_ajax('db_option', 'db_select');
-	}
-	*/
-	
-	/*
-	// fileapi関連
-	$("#save_link").addEventListener("click", function(){
-	var value = $("#body").value;
-	var href = "data:application/octet-stream," + encodeURIComponent(value);
-	this.setAttribute("href", href);
-	}, false);
-	
-	// read ボタンを押した際に実行する関数を登録
-	$("#read_btn").addEventListener("change", onChangeFile, false);
-	
-	// ドロップ時イベントを登録
-	//$id("body").addEventListener("dragover", onCancel, false);
-	//$id("body").addEventListener("dragenter", onCancel, false);
-	//$id("body").addEventListener("drop", onDropFile, false);
-	*/
 });
 
 
