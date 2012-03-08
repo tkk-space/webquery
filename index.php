@@ -3,7 +3,41 @@ require './slim/Slim.php';
 
 ini_set('error_reporting',E_ERROR | E_WARNING | E_PARSE);
 
-$app = new Slim();
+$app = new Slim(
+	array(
+	//'debug' => 'true',
+	//'session.flash_key' => 'Keizu.flash_key',
+	//'view' => '\Holy\Slim\View\PhpTalView',
+	//'templates.path' => realpath(__DIR__ . '/views'),
+));
+
+
+
+// Error handler
+$app->error('err');
+function err(Exception $e){
+	$code = $e->getCode();
+	$data = 'HTTPエラー:';
+	$mes = 'サーバー内部でエラーが発生しました';
+	$status = 500;
+	if ($e instanceof HttpException) {
+		switch ($code) {
+		case 403:
+			$mes = 'お探しのページは表示できません';
+			$status = 403;
+			break;
+		case 404:
+			$mes = 'お探しのページは見つかりませんでした';
+			$status = 404;
+			break;
+		case 405:
+			$mes = '不正なアクセスです';
+			$status = 405;
+			break;
+		}
+	}
+	error_print($data.$mes.'('.$status.')','',null);
+}
 
 // 初期化作業
 function db_init(){
@@ -176,7 +210,7 @@ function tbl_option($DB) {
 	$pdb=run_sql_query($DB,$tbl_sqlx,__FUNCTION__);
 	
 	$type_rows=array();
-	$typ_color = array('r'=>'#FFF','v'=>'#AFA','i'=>'#c9c' ,'S'=>'#9cc'    );
+	$typ_color = array('r'=>'#FFF','v'=>'#AFA','i'=>'#c9c' ,'S'=>'#9cc'	   );
 	$typ_name  = array('r'=>'TABLE','v'=>'VIEW','i'=>'INDEX','S'=>'SEQUENCE');
 	$form_types=$_POST["setting_tblsel_view_type"];
 	
@@ -191,7 +225,7 @@ function tbl_option($DB) {
 		if($_POST["tbl_select"] == $db_ary[0]){ $selected="selected"; }
 		// テーブル以外の場合タイプ名を右につける
 		if($db_ary['relkind']!='r'){ $db_ary['rows']=$db_ary['relkind']; }
-		$tbl_opt_html.='<option '.$disabled.' style="display:'.$disp.'; background:'.$typ_color[$db_ary['relkind']].';"  type="'.$db_ary['relkind'].'" value="'.$db_ary['relname'].'" '.$selected.'>'.$db_ary['relname'].'   ('.$db_ary['rows'].')</option>';
+		$tbl_opt_html.='<option '.$disabled.' style="display:'.$disp.'; background:'.$typ_color[$db_ary['relkind']].';"	 type="'.$db_ary['relkind'].'" value="'.$db_ary['relname'].'" '.$selected.'>'.$db_ary['relname'].'	 ('.$db_ary['rows'].')</option>';
 	}
 	return $tbl_opt_html;
 }
@@ -236,7 +270,7 @@ function table_viewer($DB,$tbl_naiyo_sqlx,$col_dat){
 	for($i=0;$i<$col_dat['total_num'];$i++){
 		$type='';
 		$selected=($_POST["col_select"] == $col_dat[$i]['name'])?"selected":'';
-		$html_table_viewer.='<td><a  href="javascript:void(0);" onclick="add_order(\''.$col_dat[$i]['name'].'\');" style="color:#fff" title="">'.$col_dat[$i]['name'].'</td>';
+		$html_table_viewer.='<td><a	 href="javascript:void(0);" onclick="add_order(\''.$col_dat[$i]['name'].'\');" style="color:#fff" title="">'.$col_dat[$i]['name'].'</td>';
 	}
 	$html_table_viewer.='</tr>';
 	
@@ -312,7 +346,9 @@ function alert($mes){
 function error_print($mes,$sqlx,$DB){
 	// 区切り文字を入れて200 OKとかの奴を最後にもっていく
 	$result=array(mes_tsv($mes,$sqlx,1),'','','','','');
-	$DB->disconnect;
+	if($DB){
+		//$DB->disconnect();
+	}
 	die(result_print($result));
 }
 
@@ -418,6 +454,8 @@ function diff_viewer($DB){
 		<th>種別</th>
 	</tr>';
 	
+	
+	
 	foreach($result as $columns){
 		$html.="
 		<tr>
@@ -461,7 +499,7 @@ function _get_tables($db){
 
 function _get_table_info($db, $table_name){
 	$ret = array();
-	$str_query  = get_tbl_info_query($table_name);
+	$str_query	= get_tbl_info_query($table_name);
 	$table_date = gethashs($db, $str_query);
 	foreach($table_date as $table_datum){
 		$ret[$table_datum['attname']] = $table_datum['typname'];
@@ -485,17 +523,20 @@ function error_disp($errinfo,$sqlx){
 }
 
 function create_db($setting){
-	if(!$setting["dbtype"]){ $setting["dbtype"]='pgsql'; }
-	if(!$setting["port"]){ $setting["port"]='5432'; }
 	
-	$dsn=$setting["dbtype"].':';
-	$dsn.='host='.$setting["ip"];
-	$dsn.=($setting["db"] != '' && $setting["db"] != 'reading...')?' dbname='.$setting["db"]:'';
-	$dsn.=($setting["user"])?' user='.$setting["user"]:'';
-	$dsn.=($setting["pass"])?' password='.$setting["pass"]:'';
-	$dsn.=($setting["port"])?' port='.$setting["port"]:'';
-	$dsn.=($setting["timeout"])?' connect_timeout='.$setting["timeout"]:'';
+	$dsn=($setting["dbtype"])?"$setting[dbtype]:":'pgsql:';
+	$dsn.=($setting["ip"])?"host=$setting[ip];":"host=localhost;";
 	
+	if($setting["dbtype"]=='mysql'){
+		$dsn.=($setting["port"])?"port=$setting[port];":"port=3306;";
+	}else{
+		$dsn.=($setting["port"])?"port=$setting[port];":"port=5432;";
+	}
+	
+	$dsn.=(trim($setting["db"])!= '' && $setting["db"] != 'reading...')?" dbname=$setting[db];":"";
+	$dsn.=($setting["user"])?"user=$setting[user];":"";
+	$dsn.=($setting["pass"])?"password=$setting[pass];":"";
+	$dsn.=($setting["timeout"])?" connect_timeout=$setting[timeout];":"";
 	$DB = new PDO($dsn) or error_print('データベース接続エラー(.'.$_POST["setting_connect_name"].'.)',$dsn);
 	return $DB;
 }
@@ -510,12 +551,23 @@ function get_sql_query($type) {
 }
 
 function get_db_query(){
-	$query="SELECT datname FROM pg_database WHERE datname NOT IN ('template0','template1') ORDER BY datname;";
+	if($_POST["setting_connect_db"]=='mysql'){
+		$query="SELECT SCHEMA_NAME as datname FROM INFORMATION_SCHEMA.SCHEMATA";
+	}else{
+		$query="SELECT datname FROM pg_database WHERE datname NOT IN ('template0','template1') ORDER BY datname;";
+	}
 	return $query;
 }
 
 
 function get_tbl_query(){
+	if($_POST["setting_connect_db"]=='mysql'){
+	$query="
+		SELECT table_name as relname,table_type as relkind,table_rows as rows,''
+		FROM INFORMATION_SCHEMA.TABLES
+		ORDER BY relkind, relname;
+";
+	}else{
 	$query="
 		SELECT c.relname,c.relkind,reltuples as rows,pg_relation_size(relname::regclass)
 		FROM pg_catalog.pg_class c
@@ -525,11 +577,20 @@ function get_tbl_query(){
 		pg_catalog.pg_table_is_visible(c.oid)
 		ORDER BY relkind, relname;
 ";
+	}
 	//alert($query);
 	return $query;
 }
 
 function get_tbl_info_query($table_name){
+	if($_POST["setting_connect_db"]=='mysql'){
+		$query="
+	SELECT
+	 pg_attribute.attnum,
+	 pg_attribute.attname,
+	 pg_type.typname
+		";
+	}else{
 	$query="
 	SELECT
 	 pg_attribute.attnum,
@@ -546,7 +607,7 @@ function get_tbl_info_query($table_name){
 	 pg_attribute.attnum > 0
 	ORDER BY 
 	 pg_attribute.attnum;";
-
+	}
 	return $query;
 }
 
@@ -601,7 +662,7 @@ function main(){
 	<style type="text/css">
 	<!--
 		.tbl_list {
-		overflow: scroll;   /* スクロール表示 */
+		overflow: scroll;	/* スクロール表示 */
 		width: 150px;
 		height: 80%;
 		}
@@ -641,16 +702,16 @@ $connect = <<<EOT
 			<select id="refarence" name="refarence" size="1" style="" title="←接続パネルで選択して下さい" onchange="create_refa();">
 				<option value='' style="background:#FFF;">SQL生成</option>
 				<option value='refa_tblsel' style="background:#cff;">表表示</option>
-				<option value='refa_rowup'  style="background:#fc9;">行更新</option>
+				<option value='refa_rowup'	style="background:#fc9;">行更新</option>
 				<option value='refa_tblcre' style="background:#9F9;">表作成</option>
 				<option value='refa_rowadd' style="background:#9F9;">行作成</option>
 				<option value='refa_colcre' style="background:#9F9;">列作成</option>
-				<option value='refa_dbcre'  style="background:#9F9;">DB作成</option>
+				<option value='refa_dbcre'	style="background:#9F9;">DB作成</option>
 				<option value='refa_tbldel' style="background:#fcc;">表削除</option>
 				<option value='refa_rowdel' style="background:#fcc;">行削除</option>
 				<option value='refa_coldel' style="background:#fcc;">列削除</option>
-				<option value='refa_dbdel'  style="background:#fcc;">DB削除</option>
-				<option value='refa_css'    style="background:#FFF;">CSV生成</option>
+				<option value='refa_dbdel'	style="background:#fcc;">DB削除</option>
+				<option value='refa_css'	style="background:#FFF;">CSV生成</option>
 				<option value='refa_csstbl' style="background:#cff;">表内容CSV</option>
 			</select>
 			]</span>
@@ -677,10 +738,8 @@ EOT;
 					
 					<select id="setting_connect_db" name="setting_connect_db" size="1" style="">
 						<option value="pgsql" />Postgres</option>
-						<!--
 						<option value="mysql" />MySQL</option>
 						<option value="oracle" />Oracle</option>
-						-->
 					</select>
 					<!--
 					<select id="setting_connect_char" name="setting_connect_char" size="1" style="" >
@@ -730,7 +789,7 @@ $run = <<<EOT
 		<div id="control_panel" name="control_panel" style="background-color:#666;padding:5px;vertical-align: middle;">
 			<!-- クエリ入力ボックス -->
 			<div id="query_panel" style="">
-				<textarea id="query" name="query" style="height:50px;width:100%;font-size:small;resize:vertical;" placeholder='実行クエリ' onkeypress="run_key(event);" readonly="readonly"></textarea>
+				<textarea id="query" name="query" style="height:50px;width:99%;font-size:small;resize:vertical;" placeholder='実行クエリ' onkeypress="run_key(event);" readonly="readonly"></textarea>
 			</div>
 			
 			<input type="button" value=" 実行 " id="run_sql" style="width:5%;" onClick="run_query()" />
