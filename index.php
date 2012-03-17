@@ -2,6 +2,7 @@
 require './slim/Slim.php';
 
 ini_set('error_reporting',E_ERROR | E_WARNING | E_PARSE);
+//ini_set('display_errors', 0);
 
 $app = new Slim(
 	array(
@@ -11,32 +12,30 @@ $app = new Slim(
 	//'templates.path' => realpath(__DIR__ . '/views'),
 ));
 
-
-
 // Error handler
 $app->error('err');
 function err(Exception $e){
 	$code = $e->getCode();
 	$data = 'HTTPエラー:';
-	$mes = 'サーバー内部でエラーが発生しました';
+	$data_mes = 'サーバー内部でエラーが発生しました';
 	$status = 500;
 	if ($e instanceof HttpException) {
 		switch ($code) {
 		case 403:
-			$mes = 'お探しのページは表示できません';
+			$data_mes = 'お探しのページは表示できません';
 			$status = 403;
 			break;
 		case 404:
-			$mes = 'お探しのページは見つかりませんでした';
+			$data_mes = 'お探しのページは見つかりませんでした';
 			$status = 404;
 			break;
 		case 405:
-			$mes = '不正なアクセスです';
+			$data_mes = '不正なアクセスです';
 			$status = 405;
 			break;
 		}
 	}
-	error_print($data.$mes.'('.$status.')','',null);
+	error_print($data.$data_mes.'('.$status.')','',null);
 }
 
 // 初期化作業
@@ -59,56 +58,63 @@ function ajax(){
 	$sqlx='SELECT * FROM '.$_POST["tbl_select"];
 	$sqlx_limit = $sqlx.create_query_limit();
 	if($_POST["type"] == "db_option"){
-		$html[0] = db_option($DB);
+		$html[0] = db_option();
 		$mes='DBに接続しました';
 		
 	}else if($_POST["type"] == "tbl_option"){
-		$html[0] =tbl_option($DB);
+		$html[0] =tbl_option();
 		$mes='DBを選択しました';
 		
 	}else if($_POST["type"] == "db_view"){
-		$col_dat=get_column_data($DB,$sqlx_limit);
+		$col_dat=get_column_data($sqlx_limit);
 		
-		$html[0] = table_viewer($DB,$sqlx_limit,$col_dat);
-		$html[1] = pager_view_opt($DB,$sqlx);
+		$html[0] = table_viewer($sqlx_limit,$col_dat);
+		$html[1] = pager_view_opt($sqlx);
 		$html[2] = col_option($col_dat);
 		$mes='テーブルを表示しました';
 	}else if($_POST["type"] == 'query_run'){
 		$sqlx=preg_replace("/\\\'/i","'",$_POST["query"]);
 		$sqlxs=preg_split('/;/',$sqlx);
+		$html[0]='';
+		$html[1]='';
+		
 		foreach ($sqlxs as $k => $sql ){
-			if(trim($sql)!=''){
-				$sql.=';';
+			$sql.=';';
+			if(trim($sql)!=';'){
 				if(preg_match("/^[\s]*SELECT/i",$sql)){
-					$col_dat=get_column_data($DB,$sql);
-					$html[0].= table_viewer($DB,$sql,$col_dat);
-					$html[1].= pager_view_opt($DB,$sql);
+					$col_dat=get_column_data($sql);
+					$html[0].= table_viewer($sql,$col_dat);
+					$html[1].= pager_view_opt($sql);
+					
 				}else{
-					run_sql_query($DB,$sql,'query_run');
+					run_sql_query($sql,'query_run');
 					$html[0].="<font color=\"#ff0000\">$sql</font><br>";
 				}
+				
 			}
+			
 		}
+		
 		$mes='クエリを実行しました';
 	}else if($_POST["type"] == 'reload'){
 		if($_POST["reload_num"] > 1){
-			$html[0]=db_option($DB);
+			$html[0]=db_option();
 		}
 		if($_POST["reload_num"] > 2){
-			$html[1]=tbl_option($DB,$sqlx_limit);
+			$html[1]=tbl_option($sqlx_limit);
 		}
 		if($_POST["reload_num"] > 3){
-			$col_dat=get_column_data($DB,$sqlx_limit);
+			$col_dat=get_column_data($sqlx_limit);
 			$html[2]=col_option($col_dat);
 		}
 		$mes='更新しました ';
 	
 	}else if($_POST["type"] == 'get_sql'){
-		$html[0]=get_sql($DB,$_POST["refarence"]);
+		$html[0]=get_sql($_POST["refarence"]);
 		$mes='SQLを取得';
 		
 	}else if($_POST["type"] == 'diff'){
-		$html[0]=diff_viewer($DB);
+		$html[0]=diff_viewer();
 		$mes='比較しました ';
 	}
 	
@@ -127,7 +133,7 @@ function ajax(){
 function ajax_end($mes,$sqlx_mes,$html){
 	$result=array_merge(array(mes_tsv($mes,$sqlx_mes)),$html);
 	print result_print($result);
-	$DB->disconnect;
+	//$DB->disconnect();
 }
 
 function create_query_limit(){
@@ -140,8 +146,8 @@ function create_query_limit(){
 	return $qr_limit;
 }
 
-function pager_view_opt($DB,$tbl_query){
-	$dat=page_cnt($DB,$tbl_query);
+function pager_view_opt($tbl_query){
+	$dat=page_cnt($tbl_query);
 	$start_row=(($_POST["page_select"] * $_POST["limit_num"])-$_POST["limit_num"] + 1);
 	$end_row=($_POST["page_select"] * $_POST["limit_num"]);
 	$page_info='['. $start_row .' - '.$end_row.' / '.$dat{rows}.']';
@@ -167,35 +173,36 @@ function create_input($type,$value,$name,$other){
 }
 
 // カウント・ページ数の計算
-function page_cnt($DB,$tbl_query){
-	$pdb=run_sql_query($DB,$tbl_query,__FUNCTION__);
-	$rows=$pdb->rowcount();
-	if($_POST["limit_num"]==0){
-		$_POST["limit_num"] = 1;
+function page_cnt($tbl_query){
+	if($pdb=run_sql_query($tbl_query,__FUNCTION__)){
+		$rows=$pdb->rowcount();
+		if($_POST["limit_num"]==0){
+			$_POST["limit_num"] = 1;
+		}
+		$page_num=ceil($rows/$_POST["limit_num"]);
+		$html_option_pages='';
+		for($i=1;$i<=$page_num;$i++){
+			if($_POST["page_select"] == $i){ $html_option_pages.='<option value="'.$i.'" selected>'.$i.'</option>';}
+			else{ $html_option_pages.='<option value="'.$i.'">'.$i.'</option>'; }
+		}
+		if($_POST["page_select"] == ''){$_POST["page_select"]=1;}
+		$dat=array("rows"=>$rows,"page_opt_html"=>$html_option_pages,"page_num"=>$page_num);
+		return $dat;
 	}
-	$page_num=ceil($rows/$_POST["limit_num"]);
-	$html_option_pages='';
-	for($i=1;$i<=$page_num;$i++){
-		if($_POST["page_select"] == $i){ $html_option_pages.='<option value="'.$i.'" selected>'.$i.'</option>';}
-		else{ $html_option_pages.='<option value="'.$i.'">'.$i.'</option>'; }
-	}
-	if($_POST["page_select"] == ''){$_POST["page_select"]=1;}
-	$dat=array("rows"=>$rows,"page_opt_html"=>$html_option_pages,"page_num"=>$page_num);
-	return $dat;
 }
 
 //SQLを取得
-function get_sql($DB,$type) {
+function get_sql($type) {
 	$get_sqlx=get_sql_query($type);
-	$pdb=run_sql_query($DB, $get_sqlx, __FUNCTION__);
+	$pdb=run_sql_query( $get_sqlx, __FUNCTION__);
 	$dat=$pdb->fetch(PDO::FETCH_ASSOC);
 	return $dat["definition"];
 }
 
 //DBを表示
-function db_option($DB) {
+function db_option() {
 	$db_sqlx=get_db_query();
-	$pdb=run_sql_query($DB,$db_sqlx,__FUNCTION__);
+	$pdb=run_sql_query($db_sqlx,__FUNCTION__);
 	$db_opt_html='<option value=""></option>';
 	while($row=$pdb->fetch()){
 		$selected='';
@@ -205,9 +212,9 @@ function db_option($DB) {
 	return $db_opt_html;
 }
 
-function tbl_option($DB) {
+function tbl_option() {
 	$tbl_sqlx = get_tbl_query();
-	$pdb=run_sql_query($DB,$tbl_sqlx,__FUNCTION__);
+	$pdb=run_sql_query($tbl_sqlx,__FUNCTION__);
 	
 	$type_rows=array();
 	$typ_color = array('r'=>'#FFF','v'=>'#AFA','i'=>'#c9c' ,'S'=>'#9cc'	   );
@@ -231,9 +238,9 @@ function tbl_option($DB) {
 }
 
 // カラムデータの取得
-function get_column_data($DB,$col_sqlx){
+function get_column_data($col_sqlx){
 	$ret=array();
-	$pdb=run_sql_query($DB,$col_sqlx,__FUNCTION__);
+	$pdb=run_sql_query($col_sqlx,__FUNCTION__);
 	$i = 0;
 	while ($column = $pdb->getColumnMeta($i)) {
 		$ret[$i]['name']=$column['name'];
@@ -242,6 +249,7 @@ function get_column_data($DB,$col_sqlx){
 		$i++;
 	}
 	$ret['total_num']=$i;
+
 	return $ret;
 }
 
@@ -263,7 +271,7 @@ function col_option($col_dat){
 }
 
 // テーブル内容のテーブルHTML作成
-function table_viewer($DB,$tbl_naiyo_sqlx,$col_dat){
+function table_viewer($tbl_naiyo_sqlx,$col_dat){
 	$html_table_viewer='<table cellpadding="1" cellspacing="0" border="1" style="border-width:1px;border-color:#ccc; font-size:small">';
 	// テーブル最初の行 フィールド名
 	$html_table_viewer.='<tr bgcolor="#333" style="color:#fff;"><td><input type="checkbox"></td>';
@@ -274,18 +282,19 @@ function table_viewer($DB,$tbl_naiyo_sqlx,$col_dat){
 	}
 	$html_table_viewer.='</tr>';
 	
-	$html_table_viewer.=table_viewer_line($DB,$tbl_naiyo_sqlx);
+	$html_table_viewer.=table_viewer_line($tbl_naiyo_sqlx);
 	
 	$html_table_viewer.='</table>';
 	
 	return $html_table_viewer;
 }
 
-function table_viewer_line($DB,$tbl_naiyo_sqlx){
+function table_viewer_line($tbl_naiyo_sqlx){
 	$html_table_viewer_line='';
-	// テーブル中身 交互に色変え
-	$pdb=run_sql_query($DB,$tbl_naiyo_sqlx,__FUNCTION__);
 	$t=0;
+	// テーブル中身 交互に色変え
+	$pdb=run_sql_query($tbl_naiyo_sqlx,__FUNCTION__);
+	
 	while($data=$pdb->fetch(PDO::FETCH_ASSOC)){
 		$tr_back=($t%2==0)?"fff":"ddd";
 		// オンマウスで色を変える
@@ -309,6 +318,7 @@ function table_viewer_line($DB,$tbl_naiyo_sqlx){
 		// 200を最大数とする
 		if($t>200){ return $html_table_viewer_line; }
 	}
+
 	return $html_table_viewer_line;
 }
 
@@ -340,10 +350,10 @@ function mes_tsv($mes,$sqlx_csv,$code=0){
 // わざとエラーを起こして画面上に表示
 function alert($mes){
 	print var_dump($mes); 
-	exit;
+	
 }
 
-function error_print($mes,$sqlx,$DB){
+function error_print($mes,$sqlx){
 	// 区切り文字を入れて200 OKとかの奴を最後にもっていく
 	$result=array(mes_tsv($mes,$sqlx,1),'','','','','');
 	if($DB){
@@ -364,12 +374,22 @@ function result_print($ary){
 	return $print_str;
 }
 
-function run_sql_query($DB,$sqlx,$err_mes=''){
-	$pdb=$DB->query($sqlx) or error_print("データベース実行エラー(".$err_mes.")：".error_disp($DB->errorInfo(),$sqlx),$sqlx,$DB);
-	return $pdb;
+function run_sql_query($sqlx,$err_mes='',$DB=""){
+	$DB=db_init();
+	try {
+		//$DB->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+		//$DB->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY ,true);
+		$DB->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+		$pdb=$DB->query($sqlx);
+		return $pdb;
+	}catch( PDOException $e ) {
+		error_print("データベース実行エラー(".$err_mes."".$e->getMessage().")：".error_disp($DB->errorInfo(),$sqlx),$sqlx);
+		die();
+	}
 }
 
-function diff_viewer($DB){
+function diff_viewer(){
+	$DB=db_init();
 	$diff_connect_setting=array(
 		"dbtype"=>$_POST["diif_connect_dbtype"]
 		,"ip"=>$_POST["diff_connect_ip"]
@@ -378,7 +398,6 @@ function diff_viewer($DB){
 		,"pass"=>$_POST["diff_connect_pass"]
 		,"timeout"=>3
 	);
-	
 	$DB_diff = create_db($diff_connect_setting);
 	
 	$dbname1=$_POST["db_select"];
@@ -507,9 +526,9 @@ function _get_table_info($db, $table_name){
 	return $ret;
 }
 
-function gethashs($db,$sqlx){
+function gethashs($sqlx){
 	$fd = array();
-	$re=run_sql_query($db,$sqlx);
+	$re=run_sql_query($sqlx);
 	if($re!=''){
 		while($rec=$re->fetch()){
 			$fd[] = $rec;
@@ -537,8 +556,12 @@ function create_db($setting){
 	$dsn.=($setting["user"])?"user=$setting[user];":"";
 	$dsn.=($setting["pass"])?"password=$setting[pass];":"";
 	$dsn.=($setting["timeout"])?" connect_timeout=$setting[timeout];":"";
-	$DB = new PDO($dsn) or error_print('データベース接続エラー(.'.$_POST["setting_connect_name"].'.)',$dsn);
-	return $DB;
+	try {
+		$DB = new PDO($dsn);
+		return $DB;
+	} catch( PDOException $Exception ) {
+		error_print('データベース接続エラー(.'.$_POST["setting_connect_name"].$e->getMessage().')',$dsn);
+	}
 }
 
 // SQLを取得するSQLを取得
@@ -685,17 +708,17 @@ $connect = <<<EOT
 			<!-- DBパンくずセレクト -->
 			<select id="connect_select" name="connect_select" size="1" type="text" onchange="run_host();">
 			</select>
-			<span id="" style="font-size: small;">></span>
+			<span id="" style="font-size: small;"><a style="color:white;" href="javascript:void(0);" onclick="run_host();">></a></span>
 			<select id="db_select" name="db_select" size="1" type="text" onchange="run_db();">
-				<option value="">DB一覧</option>
+				<option value="" selected>DB一覧</option>
+			</select>
+			<span id="" style="font-size: small;"><a style="color:white;" href="javascript:void(0);" onclick="run_db();">></a></span>
+			<select id="tbl_select" title="括弧内のカウント数はバキューム等をしないと正確になりません" name="tbl_select" size="1" type="text" onclick="" onchange="run_tbl();">
+			<option value="" selected>テーブル一覧</option>
 			</select>
 			<span id="" style="font-size: small;"><a style="color:white;" href="javascript:void(0);" onclick="run_tbl();">></a></span>
-			<select id="tbl_select" title="括弧内のカウント数はバキューム等をしないと正確になりません" name="tbl_select" size="1" type="text" onclick="" onchange="run_tbl();">
-			<option value="">テーブル一覧</option>
-			</select>
-			<span id="" style="font-size: small;">></span>
 			<select id="col_select" name="col_select" onchange="create_refa();" size="1" type="text">
-				<option value="">列一覧</option>
+				<option value="" selected>列一覧</option>
 			</select>
 			<span id="" style="font-size: small;">
 			[
@@ -755,18 +778,18 @@ EOT;
 					
 					<input id="setting_connect_add" name="setting_connect_add" size="10" type="button" onclick="connect_save();" value="追加" />
 					<input id="setting_connect_del" name="setting_connect_del" size="10" type="button" onclick="connect_del();" value="削除" />
-					<input id="setting_connect_connect" name="setting_connect_connect" size="10" type="button" onclick="run_ajax(\'db_option\',\'db_select\');" value="接続" />
+					<input id="setting_connect_connect" name="setting_connect_connect" size="10" type="button" onclick="run_ajax('db_option','db_select');" value="接続" />
 					</td>
 				</tr>
 				<tr>
 					<td style="text-align:right;">表示：</td>
 					<td>
-						<label><input type="checkbox" name="debug_panel_toggle" id="debug_panel_toggle" onchange="id_display_toggle(\'debug_panel\');ls_save(\'debug_panel_toggle\');" value="1"/>デバッグパネル</label>
+						<label><input type="checkbox" name="debug_panel_toggle" id="debug_panel_toggle" onchange="id_display_toggle('debug_panel');ls_save('debug_panel_toggle');" value="1"/>デバッグパネル</label>
 					</td>
 				</tr>
 				<tr>
 					<td style="text-align:right;">省略文字数：</td>
-					<td><input id="setting_value_limit" name="setting_value_limit" size="2" type="text" onchange="ls_save(\'setting_value_limit\');" value="100"/></td>
+					<td><input id="setting_value_limit" name="setting_value_limit" size="2" type="text" onchange="ls_save('setting_value_limit');" value="100"/></td>
 				</tr>
 EOT;
 				$config.=$config_key_list.$config_limit_num.$config_table_type;
@@ -851,3 +874,4 @@ $app->post('/get_sql', 'ajax_get_sql');
 $app->post('/diff', 'ajax_diff');
 
 $app->run();
+exit();

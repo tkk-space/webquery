@@ -222,11 +222,14 @@ var mes_colors = ['#fff', '#faa', '#fff', '#cfc', '#cff', '#fc9', '#fcc'];
 
 // ajax処理
 function run_ajax(type, result_id, post_add) {
+	
 	if ($('#connect_select').val() === "" && $('#db_select').val() === "") {
 		return false; 
 	}
+	
 	var post = 'type=' + type + '&' + $("#fm").serialize() + '&' + post_add;
 	var r_ids = result_id.split(',');
+	
 	for (var i = 0;i < r_ids.length;i++) {
 		if ($("#" + r_ids[i]).get(0).tagName === 'SELECT') {
 			$("#" + r_ids[i]).html("<option>reading...<\/option>");
@@ -243,11 +246,13 @@ function run_ajax(type, result_id, post_add) {
 		type: "POST",
 		url: "./ajax",
 		data: post,
+		error: function (XMLHttpRequest, status, errorThrown) {
+			alert('error!\n' + status + XMLHttpRequest.getAllResponseHeaders() + XMLHttpRequest.status + XMLHttpRequest.statusText);
+		},
 		success: function (html) {
 			if (type === 'tbl_option') {
 				$('#col_select').html('');
 			}
-			
 			// 取得文字列（<##!##>が区切り文字）
 			// メッセージ文CSV<##!##>表示されるHTML1<##!##>HTML2..3..
 			// TSV:日付,info,メッセージ,クエリ
@@ -302,7 +307,7 @@ function run_ajax(type, result_id, post_add) {
 	return 1;
 }
 
-
+	
 // 表示切替
 function id_display_toggle(id) {
 	if ($("#" + id).css('display') === 'block' || $("#" + id).css('display') === 'inline') {
