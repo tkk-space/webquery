@@ -352,6 +352,7 @@ function connect_load(id) {
 	$('#' + id + '_db').val(options[3]);
 	$('#' + id + '_char').val(options[4]);
 	$('#' + id + '_name').val(options[5]);
+	$('#' + id + '_id').val(options[6]);
 }
 
 // 接続設定削除
@@ -362,6 +363,34 @@ function connect_del() {
 	connect_init();
 }
 
+// 接続設定番号取得
+function get_connect_num() {
+	// 現在の保存数を数える
+	var now_connect = $('#connect_select').val();
+	var now_connects = now_connect.split('<##!##>');
+	var now_connect_id = now_connects[6];
+	var num = 0;
+	var temp_id = 0;
+	var empty_id = -1;
+	var empty_flag = 0;
+	for (var i = 0;i < 10;i++) {
+		var data = localStorage.getItem('connect_set' + i);
+		if (data) {
+			var data_ary = String(data).split('<##!##>');
+			if (data_ary[6] === now_connect_id) {
+				temp_id = i;
+			}
+		} else if (!data && empty_flag === 0) {
+			empty_id = i;
+			empty_flag = 1;
+		}
+	}
+	if (temp_id > 0) {
+		return temp_id;
+	} else if (empty_id >= 0) {
+		return empty_id;
+	}
+}
 
 // 接続設定保存
 function connect_save() {
@@ -372,18 +401,10 @@ function connect_save() {
 	var pass = $('#setting_connect_pass').val();
 	var charcode = $('#setting_connect_char').val();
 	
-	// 現在の保存数を数える
-	var num = 0;
-	for (var i = 0;i < 10;i++) {
-		var data = localStorage.getItem('connect_set' + i);
-		if (!data) { 
-			num = i; 
-			break; 
-		}
-	}
-	var new_connect = '<option value="' + host + '<##!##>' + user + '<##!##>' + pass + '<##!##>' + dbtype + '<##!##>' + charcode + '<##!##>' + name + '<##!##>' + num + '">' + name + '</option>';
+	var num = get_connect_num();
+	var new_connect = '<option value="' + host + '<##!##>' + user + '<##!##>' + pass + '<##!##>' + dbtype + '<##!##>' + charcode + '<##!##>' + name + '<##!##>' + num + '<##!##>">' + name + '</option>';
 	
-	localStorage.setItem('connect_set' + num, new_connect);
+	localStorage.setItem('connect_set' + num , new_connect);
 	alert('接続リストに' + name + 'を保存しました');
 	connect_init();
 }
@@ -474,6 +495,8 @@ function run_host() {
 		connect_load('connect');
 		run_ajax('db_option', 'db_select');
 		ls_save_html('connect_select');
+	} else {
+		connect_load('connect');
 	}
 	//diffパネル消す
 	$('#diff').css('display', 'none');

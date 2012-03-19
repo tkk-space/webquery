@@ -758,27 +758,28 @@ EOT;
 				<tr>
 					<td style="text-align:right;">接続設定：</td>
 					<td>
+					<input id="setting_connect_id" name="setting_connect_id" size="1" type="text" value="" placeholder="ID" disabled/>
 					
+					<input id="setting_connect_name" name="setting_connect_name" size="20" type="text" value="" placeholder="接続名"/>
 					<select id="setting_connect_db" name="setting_connect_db" size="1" style="">
 						<option value="pgsql" />Postgres</option>
 						<option value="mysql" />MySQL</option>
-						<option value="oracle" />Oracle</option>
+						<!---<option value="oracle" />Oracle</option>--->
 					</select>
-					<!--
+					<!---
 					<select id="setting_connect_char" name="setting_connect_char" size="1" style="" >
 						<option name="char_code" onclick="" value="utf-8" checked/>utf-8</option>
+						<option name="char_code" onclick="" value="ASCII" checked/>ASCII</option>
 						<option name="char_code" onclick="" value="sjis" />Shift-JIS</option>
 						<option name="char_code" onclick="" value="euc-jp" />EUC-JP</option>
 					</select>
-					-->
-					<input id="setting_connect_name" name="setting_connect_name" size="20" type="text" value="" placeholder="接続名"/>
+					--->
 					<input id="setting_connect_ip" name="setting_connect_ip" size="20" type="text" value="" placeholder="IP"/>
 					<input id="setting_connect_user" name="setting_connect_user" size="20" type="text" value="" placeholder="ユーザー名"/>
 					<input id="setting_connect_pass" name="setting_connect_pass" size="20" type="password" value="" placeholder="パスワード"/>
 					
-					<input id="setting_connect_add" name="setting_connect_add" size="10" type="button" onclick="connect_save();" value="追加" />
+					<input id="setting_connect_add" name="setting_connect_add" size="10" type="button" onclick="connect_save();" value="保存" />
 					<input id="setting_connect_del" name="setting_connect_del" size="10" type="button" onclick="connect_del();" value="削除" />
-					<input id="setting_connect_connect" name="setting_connect_connect" size="10" type="button" onclick="run_ajax('db_option','db_select');" value="接続" />
 					</td>
 				</tr>
 				<tr>
