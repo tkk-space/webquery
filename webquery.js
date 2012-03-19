@@ -220,6 +220,51 @@ function ls_clear(id) {
 // リファレンス用背景色・メッセージ用背景色
 var mes_colors = ['#fff', '#faa', '#fff', '#cfc', '#cff', '#fc9', '#fcc'];
 
+function ajax_result(html, result_id) {
+	
+	// 取得文字列（<##!##>が区切り文字）
+	// メッセージ文CSV<##!##>表示されるHTML1<##!##>HTML2..3..
+	// TSV:日付,info,メッセージ,クエリ
+	
+	var ret = html.split('<##!##>');
+	if (ret.length > 1) {
+		var mes_tsv = (String)(ret[0]).split('\t');
+		
+		// 色設定
+		var mes_color = mes_colors[mes_tsv[4]];
+		var history_sql_val = text_clean(mes_tsv[3].replace(/\'/g, "\\'"));
+		var history_sql = (mes_tsv[3].length > 40)?mes_tsv[3].substring(0, 40) + '...':mes_tsv[3];
+		
+		// resultにsql表示
+		$('#syntax').html(mes_tsv[3]);
+		
+		//メッセージ整形
+		var mes = '[' + mes_tsv[0] + '] ' + ' ' + mes_tsv[1] + ' ' + mes_tsv[2];
+		
+		// メッセージを追加
+		$('#message option:first-child').removeAttr('selected');
+		$('#message').prepend('<option style="background-color:' + mes_color + '" onclick="$(\'#query\').val(\'' + history_sql_val + '\'); $(\'#message option:first-child\').attr(\'selected\',true)" title="' + history_sql_val + '">' + mes + '<\/option>');
+		$('#message option:first-child').attr('selected', true);
+		$('#message').css('background-color', mes_color);
+		
+		$('#db_viewer').html('');
+		var ids = result_id.split(',');
+		
+		if (ids.length === 0) {
+			// idがない場合は返り値として返す
+			return ret[2];
+		} else {
+			for (var i = 0;i < ids.length;i++) {
+				// テキストエリア反映のためvalにも反映
+				$('#' + ids[i]).html(ret[1 + i]);
+				$('#' + ids[i]).val(ret[1 + i]);
+			}
+		}
+	} else {
+		alert('error!\n' + ret);
+	}
+}
+
 // ajax処理
 function run_ajax(type, result_id, post_add) {
 	
@@ -240,59 +285,25 @@ function run_ajax(type, result_id, post_add) {
 	
 	// （デバッグ用）POSTデータ表示させる
 	$('#postview').html(post.replace(/\&/g, "\n&"));
-	//alert(post);
 	// ajax処理
 	$.ajax({
 		type: "POST",
-		url: "./ajax",
+		url: "./ajax_" + type,
 		data: post,
 		error: function (XMLHttpRequest, status, errorThrown) {
-			alert('error!\n' + status + XMLHttpRequest.getAllResponseHeaders() + XMLHttpRequest.status + XMLHttpRequest.statusText);
+			// php 5.2.4以降はエラーに入る
+			if (type === 'tbl_option') {
+				$('#col_select').html('');
+			}
+			//alert('error!\n' + 'status:' + status + '\nheader:' + XMLHttpRequest.getAllResponseHeaders() + '\nresponse:' + XMLHttpRequest.responseText + '\nreadyState:' + XMLHttpRequest.readyState + '\nresponseXML:' + XMLHttpRequest.responseXML + '\nstatusText:' + XMLHttpRequest.statusText);
+			var html = XMLHttpRequest.responseText;
+			ajax_result(html, result_id);
 		},
 		success: function (html) {
 			if (type === 'tbl_option') {
 				$('#col_select').html('');
 			}
-			// 取得文字列（<##!##>が区切り文字）
-			// メッセージ文CSV<##!##>表示されるHTML1<##!##>HTML2..3..
-			// TSV:日付,info,メッセージ,クエリ
-			var ret = html.split('<##!##>');
-			if (ret.length > 1) {
-				var mes_tsv = (String)(ret[0]).split('\t');
-				
-				// 色設定
-				var mes_color = mes_colors[mes_tsv[4]];
-				var history_sql_val = text_clean(mes_tsv[3].replace(/\'/g, "\\'"));
-				var history_sql = (mes_tsv[3].length > 40)?mes_tsv[3].substring(0, 40) + '...':mes_tsv[3];
-				
-				// resultにsql表示
-				$('#syntax').html(mes_tsv[3]);
-				
-				//メッセージ整形
-				var mes = '[' + mes_tsv[0] + '] ' + ' ' + mes_tsv[1] + ' ' + mes_tsv[2];
-				
-				// メッセージを追加
-				$('#message option:first-child').removeAttr('selected');
-				$('#message').prepend('<option style="background-color:' + mes_color + '" onclick="$(\'#query\').val(\'' + history_sql_val + '\'); $(\'#message option:first-child\').attr(\'selected\',true)" title="' + history_sql_val + '">' + mes + '<\/option>');
-				$('#message option:first-child').attr('selected', true);
-				$('#message').css('background-color', mes_color);
-				
-				$('#db_viewer').html('');
-				var ids = result_id.split(',');
-				if (ids.length === 0) {
-					// idがない場合は返り値として返す
-					return ret[2];
-				} else {
-					for (i = 0;i < ids.length;i++) {
-						// テキストエリア反映のためvalにも反映
-						$('#' + ids[i]).html(ret[1 + i]);
-						$('#' + ids[i]).val(ret[1 + i]);
-					}
-				}
-				
-			} else {
-				alert('error!\n' + ret);
-			}
+			ajax_result(html, result_id);
 		}
 	});
 	

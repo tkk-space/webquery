@@ -12,6 +12,9 @@ $app = new Slim(
 	//'templates.path' => realpath(__DIR__ . '/views'),
 ));
 
+
+
+/*
 // Error handler
 $app->error('err');
 function err(Exception $e){
@@ -37,97 +40,82 @@ function err(Exception $e){
 	}
 	error_print($data.$data_mes.'('.$status.')','',null);
 }
+*/
 
 // 初期化作業
 function db_init(){
-	$setting=array(
-		"dbtype"=>$_POST["setting_connect_db"]
-		,"ip"=>$_POST["setting_connect_ip"]
-		,"port"=>$_POST["setting_connect_port"]
-		,"db"=>$_POST["db_select"]
-		,"user"=>$_POST["setting_connect_user"]
-		,"pass"=>$_POST["setting_connect_pass"]
-		,"timeout"=>3
+	return create_db(
+		array(
+			"dbtype"=>$_POST["setting_connect_db"]
+			,"ip"=>$_POST["setting_connect_ip"]
+			,"port"=>$_POST["setting_connect_port"]
+			,"db"=>$_POST["db_select"]
+			,"user"=>$_POST["setting_connect_user"]
+			,"pass"=>$_POST["setting_connect_pass"]
+			,"timeout"=>3
+		)
 	);
-	return create_db($setting);
 }
 
-function ajax(){
-	$DB = db_init();
-	$html = array();
+function ajax_db_option(){
+	$html=array();
+	$html[] = db_option();
+	ajax_end('DBに接続しました','',$html);
+}
+
+function ajax_tbl_option(){
+	$html=array();
+	$html[] =tbl_option();
+	$mes='DBを選択しました';
+	ajax_end('DBを選択しました','',$html);
+}
+
+function ajax_db_view(){
+	$html=array();
 	$sqlx='SELECT * FROM '.$_POST["tbl_select"];
 	$sqlx_limit = $sqlx.create_query_limit();
-	if($_POST["type"] == "db_option"){
-		$html[0] = db_option();
-		$mes='DBに接続しました';
-		
-	}else if($_POST["type"] == "tbl_option"){
-		$html[0] =tbl_option();
-		$mes='DBを選択しました';
-		
-	}else if($_POST["type"] == "db_view"){
-		$col_dat=get_column_data($sqlx_limit);
-		
-		$html[0] = table_viewer($sqlx_limit,$col_dat);
-		$html[1] = pager_view_opt($sqlx);
-		$html[2] = col_option($col_dat);
-		$mes='テーブルを表示しました';
-	}else if($_POST["type"] == 'query_run'){
-		$sqlx=preg_replace("/\\\'/i","'",$_POST["query"]);
-		$sqlxs=preg_split('/;/',$sqlx);
-		$html[0]='';
-		$html[1]='';
-		
-		foreach ($sqlxs as $k => $sql ){
-			$sql.=';';
-			if(trim($sql)!=';'){
-				if(preg_match("/^[\s]*SELECT/i",$sql)){
-					$col_dat=get_column_data($sql);
-					$html[0].= table_viewer($sql,$col_dat);
-					$html[1].= pager_view_opt($sql);
-					
-				}else{
-					run_sql_query($sql,'query_run');
-					$html[0].="<font color=\"#ff0000\">$sql</font><br>";
-				}
-				
-			}
-			
-		}
-		
-		$mes='クエリを実行しました';
-	}else if($_POST["type"] == 'reload'){
-		if($_POST["reload_num"] > 1){
-			$html[0]=db_option();
-		}
-		if($_POST["reload_num"] > 2){
-			$html[1]=tbl_option($sqlx_limit);
-		}
-		if($_POST["reload_num"] > 3){
-			$col_dat=get_column_data($sqlx_limit);
-			$html[2]=col_option($col_dat);
-		}
-		$mes='更新しました ';
-	
-	}else if($_POST["type"] == 'get_sql'){
-		$html[0]=get_sql($_POST["refarence"]);
-		$mes='SQLを取得';
-		
-	}else if($_POST["type"] == 'diff'){
-		$html[0]=diff_viewer();
-		$mes='比較しました ';
-	}
-	
-	// 結果表示
-	if($_POST["type"] == 'query_run'){
-		$sqlx_mes=$sqlx;
-	} else if($_POST["type"] == 'db_view'){
-		$sqlx_mes=$sqlx_limit;
-	} else {
-		$sqlx_mes='';
-	}
-	ajax_end($mes,$sqlx_mes,$html);
+	$col_dat=get_column_data($sqlx_limit);
+	$html[] = table_viewer($sqlx_limit,$col_dat);
+	$html[] = pager_view_opt($sqlx);
+	$html[] = col_option($col_dat);
+	ajax_end('テーブルを表示しました',$sqlx_limit,$html);
 }
+
+function ajax_query_run(){
+	$html=array();
+	$sqlx=preg_replace("/\\\'/i","'",$_POST["query"]);
+	$sqlxs=preg_split('/;/',$sqlx);
+	$html[0]='';
+	$html[1]='';
+	foreach ($sqlxs as $k => $sql ){
+		$sql.=';';
+		if(trim($sql)!=';'){
+			if(preg_match("/^[\s]*SELECT/i",$sql)){
+				$col_dat=get_column_data($sql);
+				$html[0].= table_viewer($sql,$col_dat);
+				$html[1].= pager_view_opt($sql);
+			}else{
+				run_sql_query($sql,'query_run');
+				$html[0].="<font color=\"#ff0000\">$sql</font><br>";
+			}
+		}
+	}
+	ajax_end('クエリを実行しました',$sqlx,$html);
+}
+
+function ajax_get_sql(){
+	$html=array();
+	$html[]=get_sql($_POST["refarence"]);
+	ajax_end('SQLを取得','',$html);
+}
+
+
+function ajax_diff(){
+	$html=array();
+	$html[0]=diff_viewer();
+	ajax_end('比較しました','',$html);
+}
+
 
 // 終了作業
 function ajax_end($mes,$sqlx_mes,$html){
@@ -374,31 +362,34 @@ function result_print($ary){
 	return $print_str;
 }
 
-function run_sql_query($sqlx,$err_mes='',$DB=""){
+function run_sql_query($sqlx,$err_mes=''){
 	$DB=db_init();
-	try {
-		//$DB->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-		//$DB->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY ,true);
-		$DB->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-		$pdb=$DB->query($sqlx);
+	
+	//$DB->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+	//$DB->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY ,true);
+	//$DB->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+	$pdb=$DB->query($sqlx);
+	if($pdb){
 		return $pdb;
-	}catch( PDOException $e ) {
-		error_print("データベース実行エラー(".$err_mes."".$e->getMessage().")：".error_disp($DB->errorInfo(),$sqlx),$sqlx);
+	}else{
+		error_print("データベース実行エラー(".$err_mes.")：".error_disp($DB->errorInfo(),$sqlx),$sqlx);
 		die();
 	}
 }
 
 function diff_viewer(){
 	$DB=db_init();
-	$diff_connect_setting=array(
-		"dbtype"=>$_POST["diif_connect_dbtype"]
-		,"ip"=>$_POST["diff_connect_ip"]
-		,"db"=>$_POST["diff_connect_db"]
-		,"user"=>$_POST["diff_connect_user"]
-		,"pass"=>$_POST["diff_connect_pass"]
-		,"timeout"=>3
+	$diff_connect_setting=
+	$DB_diff = create_db(
+		array(
+			"dbtype"=>$_POST["diif_connect_dbtype"]
+			,"ip"=>$_POST["diff_connect_ip"]
+			,"db"=>$_POST["diff_connect_db"]
+			,"user"=>$_POST["diff_connect_user"]
+			,"pass"=>$_POST["diff_connect_pass"]
+			,"timeout"=>3
+		)
 	);
-	$DB_diff = create_db($diff_connect_setting);
 	
 	$dbname1=$_POST["db_select"];
 	$dbname2=$_POST["diff_connect_db"];
@@ -542,7 +533,6 @@ function error_disp($errinfo,$sqlx){
 }
 
 function create_db($setting){
-	
 	$dsn=($setting["dbtype"])?"$setting[dbtype]:":'pgsql:';
 	$dsn.=($setting["ip"])?"host=$setting[ip];":"host=localhost;";
 	
@@ -556,10 +546,11 @@ function create_db($setting){
 	$dsn.=($setting["user"])?"user=$setting[user];":"";
 	$dsn.=($setting["pass"])?"password=$setting[pass];":"";
 	$dsn.=($setting["timeout"])?" connect_timeout=$setting[timeout];":"";
-	try {
-		$DB = new PDO($dsn);
+	
+	$DB = new PDO($dsn);
+	if($DB){
 		return $DB;
-	} catch( PDOException $Exception ) {
+	}else{
 		error_print('データベース接続エラー(.'.$_POST["setting_connect_name"].$e->getMessage().')',$dsn);
 	}
 }
@@ -768,8 +759,8 @@ EOT;
 					</select>
 					<!---
 					<select id="setting_connect_char" name="setting_connect_char" size="1" style="" >
-						<option name="char_code" onclick="" value="utf-8" checked/>utf-8</option>
-						<option name="char_code" onclick="" value="ASCII" checked/>ASCII</option>
+						<option name="char_code" onclick="" value="utf-8" checked />utf-8</option>
+						<option name="char_code" onclick="" value="ASCII" />ASCII</option>
 						<option name="char_code" onclick="" value="sjis" />Shift-JIS</option>
 						<option name="char_code" onclick="" value="euc-jp" />EUC-JP</option>
 					</select>
@@ -783,11 +774,23 @@ EOT;
 					</td>
 				</tr>
 				<tr>
+				<td style="text-align:right;">文字コード：</td>
+				<td>
+					<select id="setting_char_code" name="setting_char_code" size="1" style="" >
+						<option name="char_code" value="UTF-8" checked/>UTF-8</option>
+						<option name="char_code" value="ASCII" />ASCII</option>
+						<option name="char_code" value="sjis" />Shift-JIS</option>
+						<option name="char_code" value="euc-jp" />EUC-JP</option>
+					</select>
+				</td>
+				</tr>
+				<tr>
 					<td style="text-align:right;">表示：</td>
 					<td>
 						<label><input type="checkbox" name="debug_panel_toggle" id="debug_panel_toggle" onchange="id_display_toggle('debug_panel');ls_save('debug_panel_toggle');" value="1"/>デバッグパネル</label>
 					</td>
 				</tr>
+
 				<tr>
 					<td style="text-align:right;">省略文字数：</td>
 					<td><input id="setting_value_limit" name="setting_value_limit" size="2" type="text" onchange="ls_save('setting_value_limit');" value="100"/></td>
@@ -866,13 +869,13 @@ EOT;
 $app->get('/', 'main');
 $app->post('/ajax', 'ajax');
 
-$app->post('/db_option', 'ajax_db_option');
-$app->post('/tbl_option', 'ajax_tbl_option');
-$app->post('/db_view', 'ajax_db_view');
-$app->post('/query_run', 'ajax_query_run');
-$app->post('/reload', 'ajax_reload');
-$app->post('/get_sql', 'ajax_get_sql');
-$app->post('/diff', 'ajax_diff');
+$app->post('/ajax_db_option', 'ajax_db_option');
+$app->post('/ajax_tbl_option', 'ajax_tbl_option');
+$app->post('/ajax_db_view', 'ajax_db_view');
+$app->post('/ajax_query_run', 'ajax_query_run');
+$app->post('/ajax_reload', 'ajax_reload');
+$app->post('/ajax_get_sql', 'ajax_get_sql');
+$app->post('/ajax_diff', 'ajax_diff');
 
 $app->run();
 exit();
