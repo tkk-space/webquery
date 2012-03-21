@@ -261,7 +261,7 @@ function ajax_result(html, result_id) {
 			}
 		}
 	} else {
-		alert('error!\n' + ret);
+		alert('error!\nhtml:' + html + '\nret:' + ret);
 	}
 }
 
@@ -291,10 +291,7 @@ function run_ajax(type, result_id, post_add) {
 		url: "./ajax_" + type,
 		data: post,
 		error: function (XMLHttpRequest, status, errorThrown) {
-			// php 5.2.4以降はエラーに入る
-			if (type === 'tbl_option') {
-				$('#col_select').html('');
-			}
+			// HTTPエラーの場合
 			//alert('error!\n' + 'status:' + status + '\nheader:' + XMLHttpRequest.getAllResponseHeaders() + '\nresponse:' + XMLHttpRequest.responseText + '\nreadyState:' + XMLHttpRequest.readyState + '\nresponseXML:' + XMLHttpRequest.responseXML + '\nstatusText:' + XMLHttpRequest.statusText);
 			var html = XMLHttpRequest.responseText;
 			ajax_result(html, result_id);

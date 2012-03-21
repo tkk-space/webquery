@@ -10,6 +10,8 @@ $app = new Slim(
 	//'session.flash_key' => 'Keizu.flash_key',
 	//'view' => '\Holy\Slim\View\PhpTalView',
 	//'templates.path' => realpath(__DIR__ . '/views'),
+	'cookies.encrypt' => false,
+	'session.handler' => null
 ));
 
 
@@ -120,7 +122,7 @@ function ajax_diff(){
 // 終了作業
 function ajax_end($mes,$sqlx_mes,$html){
 	$result=array_merge(array(mes_tsv($mes,$sqlx_mes)),$html);
-	print result_print($result);
+	result_print($result);
 	//$DB->disconnect();
 }
 
@@ -344,10 +346,7 @@ function alert($mes){
 function error_print($mes,$sqlx){
 	// 区切り文字を入れて200 OKとかの奴を最後にもっていく
 	$result=array(mes_tsv($mes,$sqlx,1),'','','','','');
-	if($DB){
-		//$DB->disconnect();
-	}
-	die(result_print($result));
+	result_print($result);
 }
 
 // 返す文字列（<##!##>が区切り文字）
@@ -359,7 +358,7 @@ function result_print($ary){
 	foreach ($ary as $_){
 		$print_str .= $_.$sep;
 	}
-	return $print_str;
+	print $print_str;
 }
 
 function run_sql_query($sqlx,$err_mes=''){
@@ -368,12 +367,12 @@ function run_sql_query($sqlx,$err_mes=''){
 	//$DB->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
 	//$DB->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY ,true);
 	//$DB->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+	//$DB->setAttribute( PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING );
 	$pdb=$DB->query($sqlx);
-	if($pdb){
-		return $pdb;
+	if(!$pdb){
+		error_print("DB実行エラー(".$err_mes.")：".error_disp($DB->errorInfo(),$sqlx),$sqlx);
 	}else{
-		error_print("データベース実行エラー(".$err_mes.")：".error_disp($DB->errorInfo(),$sqlx),$sqlx);
-		die();
+		return $pdb;
 	}
 }
 
@@ -551,7 +550,7 @@ function create_db($setting){
 	if($DB){
 		return $DB;
 	}else{
-		error_print('データベース接続エラー(.'.$_POST["setting_connect_name"].$e->getMessage().')',$dsn);
+		error_print('DB接続エラー(.'.$_POST["setting_connect_name"].$DB->getMessage().')',$dsn);
 	}
 }
 
