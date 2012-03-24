@@ -54,6 +54,7 @@ function db_init(){
 			,"db"=>$_POST["db_select"]
 			,"user"=>$_POST["setting_connect_user"]
 			,"pass"=>$_POST["setting_connect_pass"]
+			,"charset"=>$_POST["setting_connect_char"]
 			,"timeout"=>3
 		)
 	);
@@ -123,7 +124,6 @@ function ajax_diff(){
 function ajax_end($mes,$sqlx_mes,$html){
 	$result=array_merge(array(mes_tsv($mes,$sqlx_mes)),$html);
 	result_print($result);
-	//$DB->disconnect();
 }
 
 function create_query_limit(){
@@ -308,7 +308,6 @@ function table_viewer_line($tbl_naiyo_sqlx){
 		// 200を最大数とする
 		if($t>200){ return $html_table_viewer_line; }
 	}
-
 	return $html_table_viewer_line;
 }
 
@@ -361,13 +360,22 @@ function result_print($ary){
 	print $print_str;
 }
 
-function run_sql_query($sqlx,$err_mes=''){
-	$DB=db_init();
-	
+function run_sql_query($sqlx,$err_mes='',$DB=""){
+	if($DB==""){
+		$DB=db_init();
+	}
 	//$DB->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
 	//$DB->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY ,true);
 	//$DB->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 	//$DB->setAttribute( PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING );
+	/*
+	if($_POST["setting_char_code"]!=''){
+		$pdb = $DB->query("SET NAMES '".$_POST['setting_char_code']."';");
+		if (!$pdb) {
+			error_print("DB文字コードエラー(".$err_mes.")：".error_disp($DB->errorInfo(),$sqlx),$sqlx);
+		}
+	}
+	*/
 	$pdb=$DB->query($sqlx);
 	if(!$pdb){
 		error_print("DB実行エラー(".$err_mes.")：".error_disp($DB->errorInfo(),$sqlx),$sqlx);
@@ -516,9 +524,9 @@ function _get_table_info($db, $table_name){
 	return $ret;
 }
 
-function gethashs($sqlx){
+function gethashs($db,$sqlx){
 	$fd = array();
-	$re=run_sql_query($sqlx);
+	$re=run_sql_query($sqlx,"",$db);
 	if($re!=''){
 		while($rec=$re->fetch()){
 			$fd[] = $rec;
@@ -545,8 +553,8 @@ function create_db($setting){
 	$dsn.=($setting["user"])?"user=$setting[user];":"";
 	$dsn.=($setting["pass"])?"password=$setting[pass];":"";
 	$dsn.=($setting["timeout"])?" connect_timeout=$setting[timeout];":"";
-	
-	$DB = new PDO($dsn);
+	//$dsn.=($setting["charset"])?" charset=$setting[char];":"";
+	$DB = new PDO($dsn,$setting["user"],$setting["pass"]);
 	if($DB){
 		return $DB;
 	}else{
@@ -668,10 +676,10 @@ function limitnum_set_forms(){
 }
 
 function main(){
-		$header = '
+		$header = <<<EOT
 <!DOCTYPE html><html><head>
 	<meta charset="utf-8"/>
-	<title id="title">WebQuery ['.$_SERVER['SERVER_NAME'].']</title>
+	<title id="title">WebQuery [{$_SERVER['SERVER_NAME']}]</title>
 	<style type="text/css">
 	<!--
 		.tbl_list {
@@ -684,9 +692,7 @@ function main(){
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 	<script type="text/javascript" src="jquery-1.6.1.min.js"></script>
 	<script type="text/javascript" src="webquery.js"></script>
-</head>';
-
-	$html_start = <<<EOT
+</head>
 <body id="body">
 	<form id="fm" name="fm" >
 EOT;
@@ -757,11 +763,13 @@ EOT;
 						<!---<option value="oracle" />Oracle</option>--->
 					</select>
 					<!---
-					<select id="setting_connect_char" name="setting_connect_char" size="1" style="" >
-						<option name="char_code" onclick="" value="utf-8" checked />utf-8</option>
-						<option name="char_code" onclick="" value="ASCII" />ASCII</option>
-						<option name="char_code" onclick="" value="sjis" />Shift-JIS</option>
-						<option name="char_code" onclick="" value="euc-jp" />EUC-JP</option>
+					<select id="setting_connect_char" name="setting_connect_char" size="1" placeholder="文字コード" >
+						<option value="utf8" checked/>UTF-8</option>
+						<option value="ASCII" />ASCII</option>
+						<option value="MS932" />MS932</option>
+						<option value="ISO-2022-JP" />ISO-2022-JP</option>
+						<option value="SJIS" />Shift-JIS</option>
+						<option value="euc-jp" />EUC-JP</option>
 					</select>
 					--->
 					<input id="setting_connect_ip" name="setting_connect_ip" size="20" type="text" value="" placeholder="IP"/>
@@ -772,17 +780,21 @@ EOT;
 					<input id="setting_connect_del" name="setting_connect_del" size="10" type="button" onclick="connect_del();" value="削除" />
 					</td>
 				</tr>
+				<!---
 				<tr>
 				<td style="text-align:right;">文字コード：</td>
 				<td>
 					<select id="setting_char_code" name="setting_char_code" size="1" style="" >
-						<option name="char_code" value="UTF-8" checked/>UTF-8</option>
-						<option name="char_code" value="ASCII" />ASCII</option>
-						<option name="char_code" value="sjis" />Shift-JIS</option>
-						<option name="char_code" value="euc-jp" />EUC-JP</option>
+						<option value="utf8" checked/>UTF-8</option>
+						<option value="ASCII" />ASCII</option>
+						<option value="MS932" />MS932</option>
+						<option value="ISO-2022-JP" />ISO-2022-JP</option>
+						<option value="SJIS" />Shift-JIS</option>
+						<option value="euc-jp" />EUC-JP</option>
 					</select>
 				</td>
 				</tr>
+				--->
 				<tr>
 					<td style="text-align:right;">表示：</td>
 					<td>
@@ -857,12 +869,12 @@ $result = <<<EOT
 		</div>
 EOT;
 
-$html_end=<<<EOT
+$footter=<<<EOT
 	</form>
 </body>
 </html>
 EOT;
-	echo $header.$html_start.$connect.$config.$debug.$run.$result.$html_end;
+	echo $header.$connect.$config.$debug.$run.$result.$footter;
 }
 
 $app->get('/', 'main');
