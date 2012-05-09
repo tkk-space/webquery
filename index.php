@@ -14,8 +14,55 @@ $app = new Slim(
 	'session.handler' => null
 ));
 
+// Grobal Data
+$request = array();
+$html = array();
 
+/*
+class PDOCSTM extends PDO {
+	public function __construct($dsn) {
+		parent::__construct($dsn);
+		$this->setAttribute(PDO::ATTR_STATEMENT_CLASS, array('STMT', array($this)));
+	}
+}
 
+class STMT extends PDOStatement {
+	public $dbh;
+	protected function __construct($dbh) {
+		$this->dbh = $dbh;
+	}
+	function fetch($option=PDO::FETCH_ASSOC) {
+		$row = parent::fetch($option);
+		foreach ($row as $key=>$val) {
+			$row[$key] = mb_convert_encoding($val, "UTF-8", "EUC-JP");
+		}
+		return $row;
+	}
+	function fetchAll($option=PDO::FETCH_ASSOC) {
+		$rows = parent::fetchAll($option);
+		foreach ($rows as $key => $row) {
+			foreach ($row as $crm => $val) {
+				$rows[$key][$crm] = mb_convert_encoding($val, "UTF-8", "EUC-JP");
+			}
+		}
+		return $rows;
+	}
+	function execute($params=array()) {
+		if (APPLICATION_ENV !== "production") {
+			if (!preg_match("/SELECT/", $this->queryString)) {
+				error_log("[SQL] " . $this->queryString . " Array::" . print_r($params,true));
+			}
+			else {
+				error_log("[SQL] " . $this->queryString);
+			}
+			if (!empty($params)) {
+				$params = App_Array::getEncodedData($params, "EUC-JP", "UTF-8");
+			}
+		}
+		return parent::execute($params);
+	}
+}
+*/
 /*
 // Error handler
 $app->error('err');
@@ -61,148 +108,25 @@ function db_init(){
 }
 
 function ajax_db_option(){
-	$html=array();
-	$html[] = db_option();
+	if($_POST["setting_connect_db"]=='mysql'){
+		$db_sqlx="SELECT SCHEMA_NAME as datname FROM INFORMATION_SCHEMA.SCHEMATA";
+	}else{
+		$db_sqlx="SELECT datname FROM pg_database WHERE datname NOT IN ('template0','template1') ORDER BY datname;";
+	}
+	
+	$pdb=run_sql_query($db_sqlx,__FUNCTION__);
+	
+	$db_opt_html='<option value=""></option>';
+	while($row=$pdb->fetch()){
+		$selected=($_POST["db_select"] == $row['datname'])?"selected":"";
+		$db_opt_html.='<option value="'.$row['datname'].'" '.$selected.'>'.$row['datname'].'</option>';
+	}
+	$html[]=$db_opt_html;
 	ajax_end('DBに接続しました','',$html);
 }
 
 function ajax_tbl_option(){
 	$html=array();
-	$html[] =tbl_option();
-	$mes='DBを選択しました';
-	ajax_end('DBを選択しました','',$html);
-}
-
-function ajax_db_view(){
-	$html=array();
-	$sqlx='SELECT * FROM '.$_POST["tbl_select"];
-	$sqlx_limit = $sqlx.create_query_limit();
-	$col_dat=get_column_data($sqlx_limit);
-	$html[] = table_viewer($sqlx_limit,$col_dat);
-	$html[] = pager_view_opt($sqlx);
-	$html[] = col_option($col_dat);
-	ajax_end('テーブルを表示しました',$sqlx_limit,$html);
-}
-
-function ajax_query_run(){
-	$html=array();
-	$sqlx=preg_replace("/\\\'/i","'",$_POST["query"]);
-	$sqlxs=preg_split('/;/',$sqlx);
-	$html[0]='';
-	$html[1]='';
-	foreach ($sqlxs as $k => $sql ){
-		$sql.=';';
-		if(trim($sql)!=';'){
-			if(preg_match("/^[\s]*SELECT/i",$sql)){
-				$col_dat=get_column_data($sql);
-				$html[0].= table_viewer($sql,$col_dat);
-				$html[1].= pager_view_opt($sql);
-			}else{
-				run_sql_query($sql,'query_run');
-				$html[0].="<font color=\"#ff0000\">$sql</font><br>";
-			}
-		}
-	}
-	ajax_end('クエリを実行しました',$sqlx,$html);
-}
-
-function ajax_get_sql(){
-	$html=array();
-	$html[]=get_sql($_POST["refarence"]);
-	ajax_end('SQLを取得','',$html);
-}
-
-
-function ajax_diff(){
-	$html=array();
-	$html[0]=diff_viewer();
-	ajax_end('比較しました','',$html);
-}
-
-
-// 終了作業
-function ajax_end($mes,$sqlx_mes,$html){
-	$result=array_merge(array(mes_tsv($mes,$sqlx_mes)),$html);
-	result_print($result);
-}
-
-function create_query_limit(){
-	$qr_limit='';
-	if((int)$_POST["limit_num"] > 0 && (int)$_POST["page_select"] > 0){
-		$qr_limit=' OFFSET '.(int)((int)$_POST["page_select"]-1)*(int)$_POST["limit_num"].' LIMIT '.$_POST["limit_num"];
-	}else if((int)$_POST["limit_num"] > 0){
-		$qr_limit=' LIMIT '.$_POST["limit_num"];
-	}
-	return $qr_limit;
-}
-
-function pager_view_opt($tbl_query){
-	$dat=page_cnt($tbl_query);
-	$start_row=(($_POST["page_select"] * $_POST["limit_num"])-$_POST["limit_num"] + 1);
-	$end_row=($_POST["page_select"] * $_POST["limit_num"]);
-	$page_info='['. $start_row .' - '.$end_row.' / '.$dat{rows}.']';
-	$page_select='<select style="width:40px;" type="text" size="1" name="page_select" id="page_select" onchange="'.pager_ajax().'">'.$dat["page_opt_html"].'</select>/'.$dat["page_num"];
-	$page_button[]=create_input('button','&lt;&lt;','page_first',pager_onclick(-100));
-	$page_button[]=create_input('button','&lt;','page_back',pager_onclick(-1));
-	$page_button[]=create_input('button','&gt;','page_next',pager_onclick(1));
-	$page_button[]=create_input('button','&gt;&gt;','page_last',pager_onclick(100));
-	$pager='<div>'.$page_button[0].$page_button[1].$page_info.$page_select.$page_button[2].$page_button[3].'</div>';
-	return $pager;
-}
-
-function pager_onclick($num){
-	return 'onclick="page_sel(\'page_select\',\''.$num.'\'); '.pager_ajax().'"';
-}
-
-function pager_ajax(){
-	return 'run_ajax(\'db_view\',\'db_viewer,view_opt\');"';
-}
-
-function create_input($type,$value,$name,$other){
-	return '<input type="'.$type.'" value="'.$value.'" id="'.$name.'" name="'.$name.'" '.$other.'>';
-}
-
-// カウント・ページ数の計算
-function page_cnt($tbl_query){
-	if($pdb=run_sql_query($tbl_query,__FUNCTION__)){
-		$rows=$pdb->rowcount();
-		if($_POST["limit_num"]==0){
-			$_POST["limit_num"] = 1;
-		}
-		$page_num=ceil($rows/$_POST["limit_num"]);
-		$html_option_pages='';
-		for($i=1;$i<=$page_num;$i++){
-			if($_POST["page_select"] == $i){ $html_option_pages.='<option value="'.$i.'" selected>'.$i.'</option>';}
-			else{ $html_option_pages.='<option value="'.$i.'">'.$i.'</option>'; }
-		}
-		if($_POST["page_select"] == ''){$_POST["page_select"]=1;}
-		$dat=array("rows"=>$rows,"page_opt_html"=>$html_option_pages,"page_num"=>$page_num);
-		return $dat;
-	}
-}
-
-//SQLを取得
-function get_sql($type) {
-	$get_sqlx=get_sql_query($type);
-	$pdb=run_sql_query( $get_sqlx, __FUNCTION__);
-	$dat=$pdb->fetch(PDO::FETCH_ASSOC);
-	return $dat["definition"];
-}
-
-//DBを表示
-function db_option() {
-	$db_sqlx=get_db_query();
-	$pdb=run_sql_query($db_sqlx,__FUNCTION__);
-	$db_opt_html='<option value=""></option>';
-	while($row=$pdb->fetch()){
-		$selected='';
-		if($_POST["db_select"] == $row['datname']){ $selected="selected"; }
-		$db_opt_html.='<option value="'.$row['datname'].'" '.$selected.'>'.$row['datname'].'</option>';
-	}
-	return $db_opt_html;
-}
-
-function tbl_option() {
 	$tbl_sqlx = get_tbl_query();
 	$pdb=run_sql_query($tbl_sqlx,__FUNCTION__);
 	
@@ -224,31 +148,95 @@ function tbl_option() {
 		if($db_ary['relkind']!='r'){ $db_ary['rows']=$db_ary['relkind']; }
 		$tbl_opt_html.='<option '.$disabled.' style="display:'.$disp.'; background:'.$typ_color[$db_ary['relkind']].';"	 type="'.$db_ary['relkind'].'" value="'.$db_ary['relname'].'" '.$selected.'>'.$db_ary['relname'].'	 ('.$db_ary['rows'].')</option>';
 	}
-	return $tbl_opt_html;
+	$html[] =$tbl_opt_html;
+	
+	$mes='DBを選択しました';
+	ajax_end('DBを選択しました','',$html);
 }
 
-// カラムデータの取得
-function get_column_data($col_sqlx){
-	$ret=array();
-	$pdb=run_sql_query($col_sqlx,__FUNCTION__);
+function ajax_db_view(){
+	if($_POST["tbl_select"] !== "" && $_POST["tbl_select"] !== "reading..."){
+		$sqlx='SELECT * FROM '.$_POST["tbl_select"];
+		$html=array();
+		$html=get_table_html($sqlx,1);
+		ajax_end('テーブルを表示しました'.$html[1],$sqlx,$html);
+	}
+}
+
+function ajax_query_run(){
+	$html=array();
+	$sqlx=preg_replace("/\\\'/i","'",$_POST["query"]);
+	$sqlxs=preg_split('/;/',$sqlx);
+	$html[0]='';
+	$html[1]='';
+	foreach ($sqlxs as $k => $sql ){
+		if(trim($sql)!=''){
+			$sql.=';';
+			if(preg_match("/^[\s]*(SELECT)/i",$sql)){
+				$table_html=get_table_html($sql,0);
+				$html[0].=$table_html[0];
+				$html[1].=$table_html[1];
+			}else{
+				run_sql_query($sql,'query_run');
+				$html[0].="<font color=\"#ff0000\">$sql</font><br>";
+			}
+		}
+	}
+	ajax_end('クエリを実行しました',$sqlx,$html);
+}
+
+function get_table_html($sqlx,$limit){
+	$post_page_select=($_POST["page_select"]=='')?1:$_POST["page_select"];
+	$post_limit_num=($_POST["limit_num"]=='')?10:$_POST["limit_num"];
+	if($limit){
+		if($post_limit_num > 0 && $post_page_select > 0){
+			$qr_limit=' OFFSET '.(int)((int)$post_page_select - 1)*(int)$post_limit_num.' LIMIT '.$post_limit_num;
+		}else if($post_limit_num > 0){
+			$qr_limit=' LIMIT '.$post_limit_num;
+		}
+		$sqlx_limit=$sqlx.$qr_limit;
+	}else{
+		$sqlx_limit=$sqlx;
+	}
+	
+	// カウント・ページ数の計算
+	if($pdb=run_sql_query($sqlx,__FUNCTION__.'col_list')){
+		$rows=$pdb->rowcount();
+		$page_num=ceil($rows/$post_limit_num);
+		$html_option_pages='';
+		for($i=1;$i<=$page_num;$i++){
+			if($post_page_select == $i){ $html_option_pages.='<option value="'.$i.'" selected>'.$i.'</option>';}
+			else{ $html_option_pages.='<option value="'.$i.'">'.$i.'</option>'; }
+		}
+		$dat=array("rows"=>$rows,"page_opt_html"=>$html_option_pages,"page_num"=>$page_num);
+	}
+	
+	$start_row=(($post_page_select * $post_limit_num)-$post_limit_num + 1);
+	$end_row=($post_page_select * $post_limit_num);
+	$page_info='['. $start_row .' - '.$end_row.' / '.$dat{rows}.']';
+	$page_select='<select style="width:40px;" type="text" size="1" name="page_select" id="page_select" onchange="'.pager_ajax().'">'.$dat["page_opt_html"].'</select>/'.$dat["page_num"];
+	$page_button[]=create_input('button','&lt;&lt;','page_first',pager_onclick(-100));
+	$page_button[]=create_input('button','&lt;','page_back',pager_onclick(-1));
+	$page_button[]=create_input('button','&gt;','page_next',pager_onclick(1));
+	$page_button[]=create_input('button','&gt;&gt;','page_last',pager_onclick(100));
+	$pager='<div>'.$page_button[0].$page_button[1].$page_info.$page_select.$page_button[2].$page_button[3].'</div>';
+	
+	
+	// フィールドの取得
+	$col_dat=array();
+	$pdb=run_sql_query($sqlx,__FUNCTION__.'col_dat');
 	$i = 0;
 	while ($column = $pdb->getColumnMeta($i)) {
-		$ret[$i]['name']=$column['name'];
-		$ret[$i]['native_type']=$column['native_type'];
-		$ret[$i]['len']=$column['len'];
+		$col_dat[$i]['name']=$column['name'];
+		$col_dat[$i]['native_type']=$column['native_type'];
+		$col_dat[$i]['len']=$column['len'];
 		$i++;
 	}
-	$ret['total_num']=$i;
-
-	return $ret;
-}
-
-//列名セレクトボックスの作成
-function col_option($col_dat){
+	$col_dat['total_num']=$i;
+	
 	$col_html.= "<option></option>";
 	for($i=0;$i<$col_dat['total_num'];$i++){
 		$selected=($_POST["col_select"] == $col_dat[$i]['name'])?"selected":'';
-		
 		$col_html.='<option value="'.$col_dat[$i]['name'].'" '.$selected.'>';
 		// 名前 (型) [デフォルト値] <制約>
 		$col_html.=$col_dat[$i]['name'];
@@ -257,11 +245,7 @@ function col_option($col_dat){
 		//$col_html.='<'.$col_dat[$i]['native_type'].'>';
 		$col_html.='</option>';
 	}
-	return $col_html;
-}
-
-// テーブル内容のテーブルHTML作成
-function table_viewer($tbl_naiyo_sqlx,$col_dat){
+	
 	$html_table_viewer='<table cellpadding="1" cellspacing="0" border="1" style="border-width:1px;border-color:#ccc; font-size:small">';
 	// テーブル最初の行 フィールド名
 	$html_table_viewer.='<tr bgcolor="#333" style="color:#fff;"><td><input type="checkbox"></td>';
@@ -272,18 +256,10 @@ function table_viewer($tbl_naiyo_sqlx,$col_dat){
 	}
 	$html_table_viewer.='</tr>';
 	
-	$html_table_viewer.=table_viewer_line($tbl_naiyo_sqlx);
-	
-	$html_table_viewer.='</table>';
-	
-	return $html_table_viewer;
-}
-
-function table_viewer_line($tbl_naiyo_sqlx){
 	$html_table_viewer_line='';
 	$t=0;
 	// テーブル中身 交互に色変え
-	$pdb=run_sql_query($tbl_naiyo_sqlx,__FUNCTION__);
+	$pdb=run_sql_query($sqlx,__FUNCTION__.'table_line');
 	
 	while($data=$pdb->fetch(PDO::FETCH_ASSOC)){
 		$tr_back=($t%2==0)?"fff":"ddd";
@@ -304,36 +280,78 @@ function table_viewer_line($tbl_naiyo_sqlx){
 		}
 		$html_table_viewer_line.='</tr>';
 		$t++;
-		
 		// 200を最大数とする
-		if($t>200){ return $html_table_viewer_line; }
+		if($t>200) break;
 	}
-	return $html_table_viewer_line;
+	
+	$html_table_viewer.=$html_table_viewer_line;
+	
+	$html_table_viewer.='</table>';
+	
+	$html[] = $html_table_viewer;
+	$html[] = $pager;
+	$html[] = $col_html;
+	return $html;
 }
 
-function mes_info(){
+
+function pager_onclick($num){
+	return 'onclick="page_sel(\'page_select\',\''.$num.'\'); '.pager_ajax().'"';
+}
+
+function pager_ajax(){
+	return 'run_ajax(\'db_view\',\'db_viewer,view_opt\');"';
+}
+
+function create_input($type,$value,$name,$other){
+	return '<input type="'.$type.'" value="'.$value.'" id="'.$name.'" name="'.$name.'" '.$other.'>';
+}
+
+function ajax_get_sql(){
+	$html=array();
+	$get_sqlx=get_sql_query($_POST["refarence"]);
+	$pdb=run_sql_query( $get_sqlx, __FUNCTION__);
+	$dat=$pdb->fetch(PDO::FETCH_ASSOC);
+	$html[]=$dat["definition"];
+
+	ajax_end('SQLを取得','',$html);
+}
+
+
+function ajax_diff(){
+	$html=array();
+	$html[0]=diff_viewer();
+	ajax_end('比較しました','',$html);
+}
+
+
+// 終了作業
+function ajax_end($mes,$sqlx_mes,$html=array()){
+	if(!is_array($html)){
+		$html=array();
+	}
+	$mes_tsv='';
+	
 	$mes_info.='(';
 	$mes_info.=($_POST["setting_connect_ip"])	?' HOST:'.$_POST["setting_connect_ip"]:'';
 	$mes_info.=($_POST["db_select"])			?' DB:'.$_POST["db_select"]:'';
 	$mes_info.=($_POST["tbl_select"])			?' TABLE:'.$_POST["tbl_select"]:'';
 	$mes_info.=($_POST["page_select"]!=''&&$_POST["page_select"]!=1) ?' PAGE:'.$_POST["page_select"]:'';
 	$mes_info.=' )';
-	return $mes_info;
-}
-
-function mes_tsv($mes,$sqlx_csv,$code=0){
-	$mes_tsv='';
+	
 	$mes_ary=array();
 	$mes_ary[0] = date("Y/m/d(D) H:i:s");
 	$mes_ary[1] = $mes;
-	$mes_ary[2] = mes_info();
-	$mes_ary[3] = $sqlx_csv;	
+	$mes_ary[2] = $mes_info;
+	$mes_ary[3] = $sqlx_mes;
 	$mes_ary[4] = $code;	
 	
 	for($i=0;$i<count($mes_ary);$i++){
 		$mes_tsv.=$mes_ary[$i]."\t";
 	}
-	return $mes_tsv;
+	
+	$result=array_merge(array($mes_tsv),$html);
+	result_print($result);
 }
 
 // わざとエラーを起こして画面上に表示
@@ -385,13 +403,14 @@ function run_sql_query($sqlx,$err_mes='',$DB=""){
 }
 
 function diff_viewer(){
+	$app = Slim::getInstance();
 	$DB=db_init();
 	$diff_connect_setting=
 	$DB_diff = create_db(
 		array(
 			"dbtype"=>$_POST["diif_connect_dbtype"]
 			,"ip"=>$_POST["diff_connect_ip"]
-			,"db"=>$_POST["diff_connect_db"]
+			,"db"=>$_POST["diff_connect_dbname"]
 			,"user"=>$_POST["diff_connect_user"]
 			,"pass"=>$_POST["diff_connect_pass"]
 			,"timeout"=>3
@@ -399,13 +418,13 @@ function diff_viewer(){
 	);
 	
 	$dbname1=$_POST["db_select"];
-	$dbname2=$_POST["diff_connect_db"];
+	$dbname2=$_POST["diff_connect_dbname"];
 	
 	$tables1 = _get_tables($DB);
 	$tables2 = _get_tables($DB_diff);
 	
 	$all_tables = array_unique(array_merge($tables1, $tables2));
-	
+	$result=array();
 	foreach($all_tables as $all_table){
 		if(in_array($all_table,$tables1) && in_array($all_table,$tables2)){
 			$columns1 = _get_table_info($DB,$all_table);
@@ -540,6 +559,7 @@ function error_disp($errinfo,$sqlx){
 }
 
 function create_db($setting){
+	$app = Slim::getInstance();
 	$dsn=($setting["dbtype"])?"$setting[dbtype]:":'pgsql:';
 	$dsn.=($setting["ip"])?"host=$setting[ip];":"host=localhost;";
 	
@@ -554,7 +574,7 @@ function create_db($setting){
 	$dsn.=($setting["pass"])?"password=$setting[pass];":"";
 	$dsn.=($setting["timeout"])?" connect_timeout=$setting[timeout];":"";
 	//$dsn.=($setting["charset"])?" charset=$setting[char];":"";
-	$DB = new PDO($dsn,$setting["user"],$setting["pass"]);
+	$DB = new PDO($dsn);
 	if($DB){
 		return $DB;
 	}else{
@@ -571,14 +591,6 @@ function get_sql_query($type) {
 	return $query;
 }
 
-function get_db_query(){
-	if($_POST["setting_connect_db"]=='mysql'){
-		$query="SELECT SCHEMA_NAME as datname FROM INFORMATION_SCHEMA.SCHEMATA";
-	}else{
-		$query="SELECT datname FROM pg_database WHERE datname NOT IN ('template0','template1') ORDER BY datname;";
-	}
-	return $query;
-}
 
 
 function get_tbl_query(){
@@ -661,22 +673,38 @@ function table_set_forms(){
 
 function limitnum_set_forms(){
 	$html='';
+	$_POST['limit_num']=($_POST['limit_num']=='')?30:$_POST['limit_num'];
+	
 	$numlist=array('10','30','50','100','200');
 	foreach($numlist as $num){
+		$limit_num_selected=($_POST['limit_num']==$num)?'selected':'';
 		$html .= '
 		<label>
-			<input type="radio" id="limit_num" name="limit_num" value="'.$num.'"  onchange="ls_save(\'limit_num\');" checked />'.$num.'
+			<input type="radio" id="limit_num" name="limit_num" value="'.$num.'"  onchange="ls_save(\'limit_num\');" '.$limit_num_selected.' />'.$num_str.'
 		</label>';
 	}
-	$html .='
-	<label>
-		<input type="radio" id="limit_num" name="limit_num" value=""  onchange="ls_save(\'limit_num\');" />無制限
-	</label>';
+	
 	return $html;
 }
 
+function accesschk(){
+	// アクセスチェック
+	$txt=file_get_contents('allow.txt');
+	foreach($txt as $line){
+		if($line == $_SERVER["REMOTE_ADDR"]){
+			return true;
+		}
+	}
+	return false;
+}
+
 function main(){
-		$header = <<<EOT
+	$app = Slim::getInstance();
+	/*if(!accesschk()){
+		echo 'アクセスが許可されていません';
+		return 0;
+	}*/
+	$header = <<<EOT
 <!DOCTYPE html><html><head>
 	<meta charset="utf-8"/>
 	<title id="title">WebQuery [{$_SERVER['SERVER_NAME']}]</title>
@@ -722,6 +750,7 @@ $connect = <<<EOT
 				<option value='' style="background:#FFF;">SQL生成</option>
 				<option value='refa_tblsel' style="background:#cff;">表表示</option>
 				<option value='refa_rowup'	style="background:#fc9;">行更新</option>
+				<option value='refa_colup'	style="background:#fc9;">列名変更</option>
 				<option value='refa_tblcre' style="background:#9F9;">表作成</option>
 				<option value='refa_rowadd' style="background:#9F9;">行作成</option>
 				<option value='refa_colcre' style="background:#9F9;">列作成</option>
@@ -734,20 +763,13 @@ $connect = <<<EOT
 				<option value='refa_csstbl' style="background:#cff;">表内容CSV</option>
 			</select>
 			]</span>
-			<a style="font-size:small;color:white;margin-right:5px;margin-left:5px;" href="javascript:void(0);" onclick="run_reload();">更新</a>
+			<!--<a style="font-size:small;color:white;margin-right:5px;margin-left:5px;" href="javascript:void(0);" onclick="run_reload();">更新</a>-->
 			<input id="reload_num" name="reload_num" type="hidden" value=""/>
 			<!--<span id="ip" style="margin-top:3px;float:right;font-size:small;vertical-align:middle;"></span>-->
+			<span id="ip" style="margin-top:3px;float:right;font-size:small;vertical-align:middle;">ver 1.1</span>
+			
 		</div>
-EOT;
 		
-		$config_key_list='';
-		$key_forms_name=array('実行'=>'setting_key_run','整形'=>'setting_key_crean','更新'=>'setting_key_update','設定'=>'setting_key_conf');
-		foreach($key_forms_name as $key=>$value){
-			$config_key_list.='<tr><td style="text-align:right;">'.$key.':</td><td>'.key_radio_forms($value).'</td></tr>';
-		}
-		$config_limit_num='<tr><td style="text-align:right;">制限数：</td><td>'.limitnum_set_forms().'</td></tr>';
-		$config_table_type='<tr><td style="text-align:right;">テーブルリスト内容：</td><td>'.table_set_forms().'</td></tr>';
-		$config = <<<EOT
 		<!-- 設定パネル start -->
 		<div id="setting" name="setting" style="display:none;font-size:small;">
 			<table style="font-size:small;background-color:#ccc;width:100%;">
@@ -807,6 +829,14 @@ EOT;
 					<td><input id="setting_value_limit" name="setting_value_limit" size="2" type="text" onchange="ls_save('setting_value_limit');" value="100"/></td>
 				</tr>
 EOT;
+
+				$config_key_list='';
+				$key_forms_name=array('実行'=>'setting_key_run','整形'=>'setting_key_crean','更新'=>'setting_key_update','設定'=>'setting_key_conf');
+				foreach($key_forms_name as $key=>$value){
+					$config_key_list.='<tr><td style="text-align:right;">'.$key.':</td><td>'.key_radio_forms($value).'</td></tr>';
+				}
+				$config_limit_num='<tr><td style="text-align:right;">制限数：</td><td>'.limitnum_set_forms().'</td></tr>';
+				$config_table_type='<tr><td style="text-align:right;">テーブルリスト内容：</td><td>'.table_set_forms().'</td></tr>';
 				$config.=$config_key_list.$config_limit_num.$config_table_type;
 				$config.=<<<EOT
 			</table>
@@ -877,9 +907,15 @@ EOT;
 	echo $header.$connect.$config.$debug.$run.$result.$footter;
 }
 
+function before(){
+	$app = Slim::getInstance();
+	return $app->request();
+}
+
+$app->hook('slim.before.dispatch', 'before');
+
 $app->get('/', 'main');
 $app->post('/ajax', 'ajax');
-
 $app->post('/ajax_db_option', 'ajax_db_option');
 $app->post('/ajax_tbl_option', 'ajax_tbl_option');
 $app->post('/ajax_db_view', 'ajax_db_view');
@@ -887,6 +923,14 @@ $app->post('/ajax_query_run', 'ajax_query_run');
 $app->post('/ajax_reload', 'ajax_reload');
 $app->post('/ajax_get_sql', 'ajax_get_sql');
 $app->post('/ajax_diff', 'ajax_diff');
+
+$app->get('/ajax_db_option', 'ajax_db_option');
+$app->get('/ajax_tbl_option', 'ajax_tbl_option');
+$app->get('/ajax_db_view', 'ajax_db_view');
+$app->get('/ajax_query_run', 'ajax_query_run');
+$app->get('/ajax_reload', 'ajax_reload');
+$app->get('/ajax_get_sql', 'ajax_get_sql');
+$app->get('/ajax_diff', 'ajax_diff');
 
 $app->run();
 exit();

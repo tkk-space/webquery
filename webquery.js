@@ -292,7 +292,7 @@ function run_ajax(type, result_id, post_add) {
 		data: post,
 		error: function (XMLHttpRequest, status, errorThrown) {
 			// HTTPエラーの場合
-			//alert('error!\n' + 'status:' + status + '\nheader:' + XMLHttpRequest.getAllResponseHeaders() + '\nresponse:' + XMLHttpRequest.responseText + '\nreadyState:' + XMLHttpRequest.readyState + '\nresponseXML:' + XMLHttpRequest.responseXML + '\nstatusText:' + XMLHttpRequest.statusText);
+			alert('error!\n' + 'status:' + status + '\nheader:' + XMLHttpRequest.getAllResponseHeaders() + '\nresponse:' + XMLHttpRequest.responseText + '\nreadyState:' + XMLHttpRequest.readyState + '\nresponseXML:' + XMLHttpRequest.responseXML + '\nstatusText:' + XMLHttpRequest.statusText);
 			var html = XMLHttpRequest.responseText;
 			ajax_result(html, result_id);
 		},
@@ -588,6 +588,8 @@ function create_refa() {
 		refa = "DELETE FROM " + table_name + " WHERE " + col_name + " ='';";
 	} else if (type === 'refa_colcre') {
 		refa = "ALTER " + table_type_name + table_name + " ADD " + col_name + " " + col_type + " DEFAULT NULL;";
+	} else if (type === 'refa_colup') {
+		refa = "ALTER " + table_type_name + table_name + " RENAME COLUMN " + col_name + " to " + col_name + ";";
 	} else if (type === 'refa_coldel') {
 		refa = "ALTER " + table_type_name + table_name + " DROP " + col_name + ";";
 	} else if (type === 'refa_tblcre' && table_type === 'v') {

@@ -1,0 +1,167 @@
+<!DOCTYPE html><html><head>
+	<meta charset="utf-8"/>
+	<title id="title">WebQuery {{server.name}}</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script type="text/javascript" src="jquery-1.6.1.min.js"></script>
+	<script type="text/javascript" src="webquery.js"></script>
+</head>
+<body id="body">
+	<form id="fm" name="fm" >
+		<div style="background-color:#666;padding:5px;vertical-align:middle;color:#ffffff;">
+			<a style='font-size:small;color:white;margin-right:5px;margin-left:5px;' onclick="id_display_toggle('setting');" href="javascript:void(0);">設定</a>
+			
+			<!-- DBパンくずセレクト -->
+			<select id="connect_select" name="connect_select" size="1" type="text" onchange="run_host();">
+			</select>
+			<span id="" style="font-size: small;"><a style="color:white;" href="javascript:void(0);" onclick="run_host();">></a></span>
+			<select id="db_select" name="db_select" size="1" type="text" onchange="run_db();">
+				<option value="" selected>DB一覧</option>
+			</select>
+			<span id="" style="font-size: small;"><a style="color:white;" href="javascript:void(0);" onclick="run_db();">></a></span>
+			<select id="tbl_select" title="括弧内のカウント数はバキューム等をしないと正確になりません" name="tbl_select" size="1" type="text" onclick="" onchange="run_tbl();">
+			<option value="" selected>テーブル一覧</option>
+			</select>
+			<span id="" style="font-size: small;"><a style="color:white;" href="javascript:void(0);" onclick="run_tbl();">></a></span>
+			<select id="col_select" name="col_select" onchange="create_refa();" size="1" type="text">
+				<option value="" selected>列一覧</option>
+			</select>
+			<span id="" style="font-size: small;">
+			[
+			<select id="refarence" name="refarence" size="1" style="" title="←接続パネルで選択して下さい" onchange="create_refa();">
+				<option value='' style="background:#FFF;">SQL生成</option>
+				<option value='refa_tblsel' style="background:#cff;">表表示</option>
+				<option value='refa_rowup'	style="background:#fc9;">行更新</option>
+				<option value='refa_colup'	style="background:#fc9;">列名変更</option>
+				<option value='refa_tblcre' style="background:#9F9;">表作成</option>
+				<option value='refa_rowadd' style="background:#9F9;">行作成</option>
+				<option value='refa_colcre' style="background:#9F9;">列作成</option>
+				<option value='refa_dbcre'	style="background:#9F9;">DB作成</option>
+				<option value='refa_tbldel' style="background:#fcc;">表削除</option>
+				<option value='refa_rowdel' style="background:#fcc;">行削除</option>
+				<option value='refa_coldel' style="background:#fcc;">列削除</option>
+				<option value='refa_dbdel'	style="background:#fcc;">DB削除</option>
+				<option value='refa_css'	style="background:#FFF;">CSV生成</option>
+				<option value='refa_csstbl' style="background:#cff;">表内容CSV</option>
+			</select>
+			]</span>
+			<!--<a style="font-size:small;color:white;margin-right:5px;margin-left:5px;" href="javascript:void(0);" onclick="run_reload();">更新</a>-->
+			<input id="reload_num" name="reload_num" type="hidden" value=""/>
+			<!--<span id="ip" style="margin-top:3px;float:right;font-size:small;vertical-align:middle;"></span>-->
+			<span id="ip" style="margin-top:3px;float:right;font-size:small;vertical-align:middle;">ver 1.01</span>
+			
+		</div>
+		<!-- 設定パネル start -->
+		<div id="setting" name="setting" style="display:none;font-size:small;">
+			<table style="font-size:small;background-color:#ccc;width:100%;">
+				<tr>
+					<td style="text-align:right;">接続設定：</td>
+					<td>
+					<input id="setting_connect_id" name="setting_connect_id" size="1" type="text" value="" placeholder="ID" disabled/>
+					
+					<input id="setting_connect_name" name="setting_connect_name" size="20" type="text" value="" placeholder="接続名"/>
+					<select id="setting_connect_db" name="setting_connect_db" size="1" style="">
+						<option value="pgsql" />Postgres</option>
+						<option value="mysql" />MySQL</option>
+						<!---<option value="oracle" />Oracle</option>--->
+					</select>
+					<!---
+					<select id="setting_connect_char" name="setting_connect_char" size="1" placeholder="文字コード" >
+						<option value="utf8" checked/>UTF-8</option>
+						<option value="ASCII" />ASCII</option>
+						<option value="MS932" />MS932</option>
+						<option value="ISO-2022-JP" />ISO-2022-JP</option>
+						<option value="SJIS" />Shift-JIS</option>
+						<option value="euc-jp" />EUC-JP</option>
+					</select>
+					--->
+					<input id="setting_connect_ip" name="setting_connect_ip" size="20" type="text" value="" placeholder="IP"/>
+					<input id="setting_connect_user" name="setting_connect_user" size="20" type="text" value="" placeholder="ユーザー名"/>
+					<input id="setting_connect_pass" name="setting_connect_pass" size="20" type="password" value="" placeholder="パスワード"/>
+					
+					<input id="setting_connect_add" name="setting_connect_add" size="10" type="button" onclick="connect_save();" value="保存" />
+					<input id="setting_connect_del" name="setting_connect_del" size="10" type="button" onclick="connect_del();" value="削除" />
+					</td>
+				</tr>
+				<!---
+				<tr>
+				<td style="text-align:right;">文字コード：</td>
+				<td>
+					<select id="setting_char_code" name="setting_char_code" size="1" style="" >
+						<option value="utf8" checked/>UTF-8</option>
+						<option value="ASCII" />ASCII</option>
+						<option value="MS932" />MS932</option>
+						<option value="ISO-2022-JP" />ISO-2022-JP</option>
+						<option value="SJIS" />Shift-JIS</option>
+						<option value="euc-jp" />EUC-JP</option>
+					</select>
+				</td>
+				</tr>
+				--->
+				<tr>
+					<td style="text-align:right;">表示：</td>
+					<td>
+						<label><input type="checkbox" name="debug_panel_toggle" id="debug_panel_toggle" onchange="id_display_toggle('debug_panel');ls_save('debug_panel_toggle');" value="1"/>デバッグパネル</label>
+					</td>
+				</tr>
+
+				<tr>
+					<td style="text-align:right;">省略文字数：</td>
+					<td><input id="setting_value_limit" name="setting_value_limit" size="2" type="text" onchange="ls_save('setting_value_limit');" value="100"/></td>
+				</tr>
+
+			</table>
+		</div>
+		<div style="clear:both;" />
+		<!-- 設定パネル end -->
+
+		<!-- デバッグパネル -->
+		<div id="debug_panel" style="display:none;font-size:x-small;">
+			<textarea type="text" style="width:100%;height:300px;font-size:x-small;" value="" id="postview" ></textarea>
+		</div>
+
+		<!-- 実行パネル -->
+		<div id="control_panel" name="control_panel" style="background-color:#666;padding:5px;vertical-align: middle;">
+			<!-- クエリ入力ボックス -->
+			<div id="query_panel" style="">
+				<textarea id="query" name="query" style="height:50px;width:99%;font-size:small;resize:vertical;" placeholder='実行クエリ' onkeypress="run_key(event);" readonly="readonly"></textarea>
+			</div>
+			
+			<input type="button" value=" 実行 " id="run_sql" style="width:5%;" onClick="run_query()" />
+			<input type="button" value=" 整形 " id="run_clean" style="width:5%;" onClick="run_clean_query()" />
+			<!--<input type='button' value=" ↑ " id="run_edit" style="width:5%;" onClick="run_edit()" />--->
+
+			<select id="message" name="message" size="1" style="background-color:#fff;width:89%;"></select>
+			<!--<a id="save_link" name="save_link" href="#" style="font-size:small;color:white;margin-right:5px;margin-left:5px;">保存</a>-->
+		</div>
+
+		<!-- 実行パネルオプション部分 -->
+		<div id="control_opt" name="control_opt"></div>
+		
+		<div id="result" style="background-color:#ccc;padding:3px;">
+			<code class="sql" style="font-size:small;"><span id="syntax"></span></code>
+		</div>
+		
+		<!-- DIFFパネル -->
+		<div id="diff" style="display:none;">
+			<span style="font-weight:bold;font-size:large;">DIFF</span>
+			<select id="diff_connect_select" name="diff_connect_select" size="1" type="text" onchange="connect_load('diff_connect');">
+			</select>
+			HOST:<input type="text" id="diff_connect_ip" name="diff_connect_ip" value="">
+			DB:<input type="text" id="diff_connect_dbname" name="diff_connect_dbname" value="">
+			USER:<input type="text" id="diff_connect_user" name="diff_connect_user" value="">
+			PASS:<input type="password" id="diff_connect_pass" name="diff_connect_pass" value="">
+			<input type="button" value="DIFF" onclick="run_diff()">
+		</div>
+		
+		<!-- sql結果表示 -->
+		<div id="sql_panel" name="sql_panel" style="float:left; width:100%;">
+			<!-- オプション(ページャー)部分 -->
+			<div id="view_opt" name="view_opt"></div>
+			
+			<!-- sql結果内容テーブル -->
+			<div id="db_viewer" style="float:left;"></div>
+		</div>
+	</form>
+</body>
+</html>
+
