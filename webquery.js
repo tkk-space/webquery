@@ -294,13 +294,24 @@ function run_ajax(type, result_id, post_add) {
 			// HTTPエラーの場合
 			alert('error!\n' + 'status:' + status + '\nheader:' + XMLHttpRequest.getAllResponseHeaders() + '\nresponse:' + XMLHttpRequest.responseText + '\nreadyState:' + XMLHttpRequest.readyState + '\nresponseXML:' + XMLHttpRequest.responseXML + '\nstatusText:' + XMLHttpRequest.statusText);
 			var html = XMLHttpRequest.responseText;
+			
 			ajax_result(html, result_id);
+			// （デバッグ用）htmlデータ表示させる
+			var debug_html = (String)(html).replace(/<##\!##>/g, "\n\n\n");
+			debug_html = result_id + "\n\n\n" + debug_html;
+			$('#htmlview').html(debug_html);
+			$('#htmlview').val(debug_html);
 		},
 		success: function (html) {
 			if (type === 'tbl_option') {
 				$('#col_select').html('');
 			}
 			ajax_result(html, result_id);
+			// （デバッグ用）htmlデータ表示させる
+			var debug_html = (String)(html).replace(/<##\!##>/g, "\n\n\n");
+			debug_html = result_id + "\n\n\n" + debug_html;
+			$('#htmlview').html(debug_html);
+			$('#htmlview').val(debug_html);
 		}
 	});
 	
@@ -643,8 +654,6 @@ function dbview_chk_toggle(id) {
 }
 
 
-
-
 // クエリにorder by追加
 var pre_query = '';
 function add_order(field) {
@@ -702,8 +711,8 @@ function page_sel(id, cmd) {
 
 // 実行ボタン押下時
 function run_query() {
-	run_ajax('query_run', 'db_viewer');
-	$("#view_opt").html('');
+	run_ajax('query_run', 'db_viewer,view_opt');
+	$('#diff').css('display', 'none');
 	//$("#query").css('height', '60px');
 }
 
@@ -751,13 +760,11 @@ $(document).ready(function () {
 	
 	load_display_toggle('tbl_list');
 	load_display_toggle('tbl_type_select');
-	load_display_toggle('debug_panel');
 	
 	//接続リスト初期化
 	connect_init();
 	
 	//ls_load('connect_select');
-
 });
 
 
