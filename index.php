@@ -1,14 +1,19 @@
 <?php
-require './slim/Slim.php';
+require_once realpath('./Slim/Slim.php');
+require_once realpath('./vendor/RedBeanPHP/rb.php');
+require_once realpath('./vendor/Slim_Extras/TwigView.php');
 
 ini_set('error_reporting',E_ERROR | E_WARNING | E_PARSE);
 //ini_set('display_errors', 0);
+
+TwigView::$twigDirectory = './vendor/template_engine/lib/Twig/lib/Twig';
+TwigView::$twigOptions = array('Twig_Extensions_Slim');
 
 $app = new Slim(
 	array(
 	//'debug' => 'true',
 	//'session.flash_key' => 'Keizu.flash_key',
-	//'view' => '\Holy\Slim\View\PhpTalView',
+	'view' => 'TwigView',
 	//'templates.path' => realpath(__DIR__ . '/views'),
 	'cookies.encrypt' => false,
 	'session.handler' => null
@@ -17,6 +22,10 @@ $app = new Slim(
 // Grobal Data
 $request = array();
 $html = array();
+
+
+
+$app = new Slim(array('view'=>'TwigView'));
 
 /*
 class PDOCSTM extends PDO {
@@ -154,8 +163,17 @@ function ajax_tbl_option(){
 
 function ajax_db_view(){
 	if(trim($_POST["tbl_select"]) !== "" && $_POST["tbl_select"] !== "reading..."){
+		$_POST["page_select"]=($_POST["page_select"]=='')?1:$_POST["page_select"];
+		$_POST["limit_num"]=($_POST["limit_num"]=='')?10:$_POST["limit_num"];
 		$sqlx='SELECT * FROM '.$_POST["tbl_select"];
-		ajax_end('テーブルを表示しました',$sqlx,get_table_html($sqlx,1));
+		if($_POST["limit_num"] > 0 && $_POST["page_select"] > 0){
+			$sqlx.=' OFFSET '.(int)((int)$_POST["page_select"] - 1)*(int)$_POST["limit_num"].' LIMIT '.$_POST["limit_num"];
+		}else if($_POST["limit_num"] > 0){
+			$sqlx.=' LIMIT '.$_POST["limit_num"];
+		}
+		$html=array();
+		$html=get_table_html($sqlx);
+		ajax_end('テーブルを表示しました',$sqlx,$html);
 	}
 }
 
@@ -169,9 +187,9 @@ function ajax_query_run(){
 		if(trim($sql)!=''){
 			$sql.=';';
 			if(preg_match("/^[\s]*(SELECT)/i",$sql)){
-				$table_html=get_table_html($sql,0);
+				$table_html=get_table_html($sql);
 				$html[0].=$table_html[0];
-				$html[1].=$table_html[3];
+				$html[1].=$table_html[2];
 			}else{
 				run_sql_query($sql,'query_run');
 				$html[0].="<font color=\"#ff0000\">$sql</font><br>";
@@ -182,33 +200,34 @@ function ajax_query_run(){
 	ajax_end('クエリを実行しました',$sqlx,$html);
 }
 
-function get_table_html($sqlx,$limit){
-	$html=array();
-	$_POST["page_select"]=($_POST["page_select"]=='')?1:$_POST["page_select"];
-	$_POST["limit_num"]=($_POST["limit_num"]=='')?10:$_POST["limit_num"];
-	
+function get_pager(){
 	// カウント・ページ数の計算
-	if($pdb=run_sql_query($sqlx,__FUNCTION__)){
-		$rows=$pdb->rowcount();
-		$page_num=ceil($rows/$_POST["limit_num"]);
-		$html_option_pages='';
-		for($i=1;$i<=$page_num;$i++){
-			if($_POST["page_select"] == $i){ $html_option_pages.='<option value="'.$i.'" selected>'.$i.'</option>';}
-			else{ $html_option_pages.='<option value="'.$i.'">'.$i.'</option>'; }
-		}
-		$dat=array("rows"=>$rows,"page_opt_html"=>$html_option_pages,"page_num"=>$page_num);
+	if(!$_POST["limit_num"]){ $_POST["limit_num"]=10; }
+	
+	$rows=getdat("SELECT reltuples FROM pg_class WHERE relname='".$_POST['tbl_select']."'");
+	$page_num=ceil($rows['reltuples']/$_POST["limit_num"]);
+	$html_option_pages='';
+	for($i=1;$i<=$page_num;$i++){
+		if($_POST["page_select"] == $i){ $html_option_pages.='<option value="'.$i.'" selected>'.$i.'</option>';}
+		else{ $html_option_pages.='<option value="'.$i.'">'.$i.'</option>'; }
 	}
+	$dat=array("rows"=>$rows['reltuples'],"page_opt_html"=>$html_option_pages,"page_num"=>$page_num);
 	
 	$start_row=(($_POST["page_select"] * $_POST["limit_num"])-$_POST["limit_num"] + 1);
 	$end_row=($_POST["page_select"] * $_POST["limit_num"]);
 	$page_info='['. $start_row .' - '.$end_row.' / '.$dat{rows}.']';
 	$page_select='<select style="width:40px;" type="text" size="1" name="page_select" id="page_select" onchange="'.pager_ajax().'">'.$dat["page_opt_html"].'</select>/'.$dat["page_num"];
-	$page_button[]=create_input('button','&lt;&lt;','page_first',pager_onclick(-100));
-	$page_button[]=create_input('button','&lt;','page_back',pager_onclick(-1));
-	$page_button[]=create_input('button','&gt;','page_next',pager_onclick(1));
-	$page_button[]=create_input('button','&gt;&gt;','page_last',pager_onclick(100));
+	//$page_button[]=create_input('button','&lt;&lt;','page_first',pager_onclick(-100));
+	//$page_button[]=create_input('button','&lt;','page_back',pager_onclick(-1));
+	//$page_button[]=create_input('button','&gt;','page_next',pager_onclick(1));
+	//$page_button[]=create_input('button','&gt;&gt;','page_last',pager_onclick(100));
 	$pager='<div>'.$page_button[0].$page_button[1].$page_info.$page_select.$page_button[2].$page_button[3].'</div>';
 	
+	return $pager;
+}
+
+function get_table_html($sqlx){
+	$html=array();
 	
 	// フィールドの取得
 	$col_dat=array();
@@ -243,19 +262,10 @@ function get_table_html($sqlx,$limit){
 	}
 	$table_field='<tr bgcolor="#333" style="color:#fff;"><td><input type="checkbox"></td>'.$table_field.'</tr>';
 	
-	$sqlx_limit=$sqlx;
-	if($limit){
-		if($_POST["limit_num"] > 0 && $_POST["page_select"] > 0){
-			$sqlx_limit.=' OFFSET '.(int)((int)$_POST["page_select"] - 1)*(int)$_POST["limit_num"].' LIMIT '.$_POST["limit_num"];
-		}else if($_POST["limit_num"] > 0){
-			$sqlx_limit.=' LIMIT '.$_POST["limit_num"];
-		}
-	}
-	
 	$table_line='';
 	$t=0;
 	// テーブル中身 交互に色変え
-	$pdb=run_sql_query($sqlx_limit,__FUNCTION__.'table_line');
+	$pdb=run_sql_query($sqlx,__FUNCTION__.'table_line');
 	while($data=$pdb->fetch(PDO::FETCH_ASSOC)){
 		$tr_back=($t%2==0)?"fff":"ddd";
 		// オンマウスで色を変える
@@ -283,14 +293,15 @@ function get_table_html($sqlx,$limit){
 	$table_info=$pdb->rowCount().'件<br>';
 	
 	$html[] = $html_table;
-	$html[] = $pager;
+	$html[] = get_pager();
 	$html[] = $col_html;
 	$html[] = $table_info;
 	return $html;
 }
 
 function pager_onclick($num){
-	return 'onclick="page_sel(\'page_select\',\''.$num.'\'); '.pager_ajax().'"';
+	//return 'onclick="page_sel(\'page_select\',\''.$num.'\');"';
+	return 'onclick="'.pager_ajax().'"';
 }
 
 function pager_ajax(){
@@ -360,18 +371,7 @@ function run_sql_query($sqlx,$err_mes='',$DB=""){
 	if($DB==""){
 		$DB=db_init();
 	}
-	//$DB->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-	//$DB->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY ,true);
-	//$DB->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-	//$DB->setAttribute( PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING );
-	/*
-	if($_POST["setting_char_code"]!=''){
-		$pdb = $DB->query("SET NAMES '".$_POST['setting_char_code']."';");
-		if (!$pdb) {
-			error_print("DB文字コードエラー(".$err_mes.")：".error_disp($DB->errorInfo(),$sqlx),$sqlx);
-		}
-	}
-	*/
+	
 	$pdb=$DB->query($sqlx);
 	if(!$pdb){
 		error_print("DB実行エラー(".$err_mes.")：".error_disp($DB->errorInfo(),$sqlx),$sqlx);
@@ -380,6 +380,11 @@ function run_sql_query($sqlx,$err_mes='',$DB=""){
 	}
 }
 
+
+function getdat($sqlx,$err_mes=''){
+	$pdb=run_sql_query($sqlx,$err_mes);
+	return $pdb->fetch(PDO::FETCH_ASSOC);
+}
 
 function ajax_diff(){
 	$html=array();
@@ -571,8 +576,6 @@ function get_sql_query($type) {
 	return $query;
 }
 
-
-
 function get_tbl_query(){
 	if($_POST["setting_connect_db"]=='mysql'){
 	$query="
@@ -637,35 +640,6 @@ function key_radio_forms($id_name){
 	return $html;
 }
 
-function table_set_forms(){
-	$html='';
-	$types=array('r'=>'table','v'=>'view','S'=>'sequence','i'=>'index');
-	foreach ($types as $key => $value) {
-		$checked=($key=='r')?'checked':'';
-		$id='setting_tblsel_view_type_'.$key;
-		$html .= '
-		<label>
-		<input type="checkbox" name="setting_tblsel_view_type[]" id="'.$id.'" onclick="ls_save(\''.$id.'\'); tbl_type_change(\''.$key.'\')" value="'.$key.'" '.$checked.'/>'.$value.'
-		</label>';
-	}
-	return $html;
-}
-
-function limitnum_set_forms(){
-	$html='';
-	$_POST['limit_num']=($_POST['limit_num']=='')?30:$_POST['limit_num'];
-	
-	$numlist=array('10','30','50','100','200');
-	foreach($numlist as $num){
-		$limit_num_selected=($_POST['limit_num']==$num)?'selected':'';
-		$html .= '
-		<label>
-			<input type="radio" id="limit_num" name="limit_num" value="'.$num.'"  onchange="ls_save(\'limit_num\');" '.$limit_num_selected.' />'.$num.'
-		</label>';
-	}
-	
-	return $html;
-}
 
 function accesschk(){
 	// アクセスチェック
@@ -685,204 +659,29 @@ function main(){
 		return 0;
 	}*/
 	
-	
-	$config_key_list='';
 	$key_forms_name=array('実行'=>'setting_key_run','整形'=>'setting_key_crean','更新'=>'setting_key_update','設定'=>'setting_key_conf');
 	foreach($key_forms_name as $key=>$value){
 		$config_key_list.='<tr><td style="text-align:right;">'.$key.':</td><td>'.key_radio_forms($value).'</td></tr>';
 	}
-	$config_limit_num='<tr><td style="text-align:right;">制限数：</td><td>'.limitnum_set_forms().'</td></tr>';
-	$config_table_type='<tr><td style="text-align:right;">テーブルリスト内容：</td><td>'.table_set_forms().'</td></tr>';
-	$config.=$config_key_list.$config_limit_num.$config_table_type;
-
-	$main_html = <<<EOT
-<!DOCTYPE html><html><head>
-	<meta charset="utf-8"/>
-	<title id="title">WebQuery [{$_SERVER['SERVER_NAME']}]</title>
-	<style type="text/css">
-	<!--
-		.tbl_list {
-		overflow: scroll;	/* スクロール表示 */
-		width: 150px;
-		height: 80%;
-		}
-	-->
-	</style>
-	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-	<script type="text/javascript" src="jquery-1.6.1.min.js"></script>
-	<script type="text/javascript" src="webquery.js"></script>
-</head>
-<body id="body">
-	<form id="fm" name="fm" >
-
-		<div style="background-color:#666;padding:5px;vertical-align:middle;color:#ffffff;">
-			<a style='font-size:small;color:white;margin-right:5px;margin-left:5px;' onclick="id_display_toggle('setting');" href="javascript:void(0);">設定</a>
-			
-			<!-- DBパンくずセレクト -->
-			<select id="connect_select" name="connect_select" size="1" type="text" onchange="run_host();">
-			</select>
-			<span id="" style="font-size: small;"><a style="color:white;" href="javascript:void(0);" onclick="run_host();">></a></span>
-			<select id="db_select" name="db_select" size="1" type="text" onchange="run_db();">
-				<option value="" selected>DB一覧</option>
-			</select>
-			<span id="" style="font-size: small;"><a style="color:white;" href="javascript:void(0);" onclick="run_db();">></a></span>
-			<select id="tbl_select" title="括弧内のカウント数はバキューム等をしないと正確になりません" name="tbl_select" size="1" type="text" onclick="" onchange="run_tbl();">
-			<option value="" selected>テーブル一覧</option>
-			</select>
-			<span id="" style="font-size: small;"><a style="color:white;" href="javascript:void(0);" onclick="run_tbl();">></a></span>
-			<select id="col_select" name="col_select" onchange="create_refa();" size="1" type="text">
-				<option value="" selected>列一覧</option>
-			</select>
-			<span id="" style="font-size: small;">
-			[
-			<select id="refarence" name="refarence" size="1" style="" title="←接続パネルで選択して下さい" onchange="create_refa();">
-				<option value='' style="background:#FFF;">SQL生成</option>
-				<option value='refa_tblsel' style="background:#cff;">表表示</option>
-				<option value='refa_rowup'	style="background:#fc9;">行更新</option>
-				<option value='refa_colup'	style="background:#fc9;">列名変更</option>
-				<option value='refa_tblcre' style="background:#9F9;">表作成</option>
-				<option value='refa_rowadd' style="background:#9F9;">行作成</option>
-				<option value='refa_colcre' style="background:#9F9;">列作成</option>
-				<option value='refa_dbcre'	style="background:#9F9;">DB作成</option>
-				<option value='refa_tbldel' style="background:#fcc;">表削除</option>
-				<option value='refa_rowdel' style="background:#fcc;">行削除</option>
-				<option value='refa_coldel' style="background:#fcc;">列削除</option>
-				<option value='refa_dbdel'	style="background:#fcc;">DB削除</option>
-				<option value='refa_css'	style="background:#FFF;">CSV生成</option>
-				<option value='refa_csstbl' style="background:#cff;">表内容CSV</option>
-			</select>
-			]</span>
-			<!--<a style="font-size:small;color:white;margin-right:5px;margin-left:5px;" href="javascript:void(0);" onclick="run_reload();">更新</a>-->
-			<input id="reload_num" name="reload_num" type="hidden" value=""/>
-			<!--<span id="ip" style="margin-top:3px;float:right;font-size:small;vertical-align:middle;"></span>-->
-			<span id="ip" style="margin-top:3px;float:right;font-size:small;vertical-align:middle;">ver 1.1</span>
-			
-		</div>
-		
-		<!-- 設定パネル start -->
-		<div id="setting" name="setting" style="display:none;font-size:small;">
-			<table style="font-size:small;background-color:#ccc;width:100%;">
-				<tr>
-					<td style="text-align:right;">接続設定：</td>
-					<td>
-					<input id="setting_connect_id" name="setting_connect_id" size="1" type="text" value="" placeholder="ID" disabled/>
-					
-					<input id="setting_connect_name" name="setting_connect_name" size="20" type="text" value="" placeholder="接続名"/>
-					<select id="setting_connect_db" name="setting_connect_db" size="1" style="">
-						<option value="pgsql" />Postgres</option>
-						<option value="mysql" />MySQL</option>
-						<!---<option value="oracle" />Oracle</option>--->
-					</select>
-					<!---
-					<select id="setting_connect_char" name="setting_connect_char" size="1" placeholder="文字コード" >
-						<option value="utf8" checked/>UTF-8</option>
-						<option value="ASCII" />ASCII</option>
-						<option value="MS932" />MS932</option>
-						<option value="ISO-2022-JP" />ISO-2022-JP</option>
-						<option value="SJIS" />Shift-JIS</option>
-						<option value="euc-jp" />EUC-JP</option>
-					</select>
-					--->
-					<input id="setting_connect_ip" name="setting_connect_ip" size="20" type="text" value="" placeholder="IP"/>
-					<input id="setting_connect_user" name="setting_connect_user" size="20" type="text" value="" placeholder="ユーザー名"/>
-					<input id="setting_connect_pass" name="setting_connect_pass" size="20" type="password" value="" placeholder="パスワード"/>
-					
-					<input id="setting_connect_add" name="setting_connect_add" size="10" type="button" onclick="connect_save();" value="保存" />
-					<input id="setting_connect_del" name="setting_connect_del" size="10" type="button" onclick="connect_del();" value="削除" />
-					</td>
-				</tr>
-				<!---
-				<tr>
-				<td style="text-align:right;">文字コード：</td>
-				<td>
-					<select id="setting_char_code" name="setting_char_code" size="1" style="" >
-						<option value="utf8" checked/>UTF-8</option>
-						<option value="ASCII" />ASCII</option>
-						<option value="MS932" />MS932</option>
-						<option value="ISO-2022-JP" />ISO-2022-JP</option>
-						<option value="SJIS" />Shift-JIS</option>
-						<option value="euc-jp" />EUC-JP</option>
-					</select>
-				</td>
-				</tr>
-				--->
-				<tr>
-					<td style="text-align:right;">デバッグ：</td>
-					<td>
-						<label><input type="checkbox" name="post_panel_toggle" id="post_panel_toggle" onchange="id_display_toggle('post_panel');" value="1"/>POST値</label>
-						<label><input type="checkbox" name="ajax_alert" id="ajax_alert" onchange="id_display_toggle('ajax_html');"" value="1"/>ajaxHTML</label>
-					</td>
-				</tr>
-
-				<tr>
-					<td style="text-align:right;">省略文字数：</td>
-					<td><input id="setting_value_limit" name="setting_value_limit" size="2" type="text" onchange="ls_save('setting_value_limit');" value="100"/></td>
-				</tr>
-				$config_key_list
-				$config_limit_num
-				$config_table_type
-			</table>
-		</div>
-		<div style="clear:both;" />
-		<!-- 設定パネル end -->
-
-		<!-- postパネル -->
-		<div id="post_panel" style="display:none;font-size:x-small;">
-			<textarea type="text" style="width:100%;height:300px;font-size:x-small;" value="" id="postview" ></textarea>
-		</div>
-		
-		<!-- ajaxHTMLパネル -->
-		<div id="ajax_html" style="display:none;font-size:x-small;">
-			<textarea type="text" style="width:100%;height:300px;font-size:x-small;" value="" id="htmlview" ></textarea>
-		</div>
-		
-		<!-- 実行パネル -->
-		<div id="control_panel" name="control_panel" style="background-color:#666;padding:5px;vertical-align: middle;">
-			<!-- クエリ入力ボックス -->
-			<div id="query_panel" style="">
-				<textarea id="query" name="query" style="height:50px;width:99%;font-size:small;resize:vertical;" placeholder='実行クエリ' onkeypress="run_key(event);" readonly="readonly"></textarea>
-			</div>
-			
-			<input type="button" value=" 実行 " id="run_sql" style="width:5%;" onClick="run_query()" />
-			<input type="button" value=" 整形 " id="run_clean" style="width:5%;" onClick="run_clean_query()" />
-			<!--<input type='button' value=" ↑ " id="run_edit" style="width:5%;" onClick="run_edit()" />--->
-
-			<select id="message" name="message" size="1" style="background-color:#fff;width:89%;"></select>
-			<!--<a id="save_link" name="save_link" href="#" style="font-size:small;color:white;margin-right:5px;margin-left:5px;">保存</a>-->
-		</div>
-		
-		<!-- 実行パネルオプション部分 -->
-		<div id="control_opt" name="control_opt"></div>
-		
-		<div id="result" style="background-color:#ccc;padding:3px;">
-			<code class="sql" style="font-size:small;"><span id="syntax"></span></code>
-		</div>
-		
-		<!-- DIFFパネル -->
-		<div id="diff" style="display:none;">
-			<span style="font-weight:bold;font-size:large;">DIFF</span>
-			<select id="diff_connect_select" name="diff_connect_select" size="1" type="text" onchange="connect_load('diff_connect');">
-			</select>
-			HOST:<input type="text" id="diff_connect_ip" name="diff_connect_ip" value="">
-			DB:<input type="text" id="diff_connect_dbname" name="diff_connect_dbname" value="">
-			USER:<input type="text" id="diff_connect_user" name="diff_connect_user" value="">
-			PASS:<input type="password" id="diff_connect_pass" name="diff_connect_pass" value="">
-			<input type="button" value="DIFF" onclick="run_diff()">
-		</div>
-		
-		<!-- sql結果表示 -->
-		<div id="sql_panel" name="sql_panel" style="float:left; width:100%;">
-			<!-- オプション(ページャー)部分 -->
-			<div id="view_opt" name="view_opt"></div>
-			
-			<!-- sql結果内容テーブル -->
-			<div id="db_viewer" style="float:left;"></div>
-		</div>
-	</form>
-</body>
-</html>
-EOT;
-	echo $main_html;
+	
+	$_POST['limit_num']=($_POST['limit_num']=='')?30:$_POST['limit_num'];
+	
+	$data["config_limit_num_list"]=array('10','30','50','100','200');
+	$data["config_table_type"][0]['key']='r';
+	$data["config_table_type"][0]['value']='table';
+	
+	$data["config_table_type"][1]['key']='v';
+	$data["config_table_type"][1]['value']='view';
+	
+	$data["config_table_type"][2]['key']='S';
+	$data["config_table_type"][2]['value']='sequence';
+	
+	$data["config_table_type"][3]['key']='i';
+	$data["config_table_type"][3]['value']='index';
+	
+	$data["title"]=$_SERVER['SERVER_NAME'];
+	$app->render('main.html',$data);
+	
 }
 
 function before(){

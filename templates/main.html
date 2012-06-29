@@ -1,11 +1,21 @@
-<!DOCTYPE html><html><head>
-	<meta charset="utf-8"/>
-	<title id="title">WebQuery {{server.name}}</title>
-	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-	<script type="text/javascript" src="jquery-1.6.1.min.js"></script>
-	<script type="text/javascript" src="webquery.js"></script>
-</head>
-<body id="body">
+<!DOCTYPE html>
+	<html><head>
+		<meta charset="utf-8"/>
+		<title id="title">WebQuery [{{ title }}]</title>
+		<style type="text/css">
+		<!--
+			.tbl_list {
+			overflow: scroll;	/* スクロール表示 */
+			width: 150px;
+			height: 80%;
+			}
+		-->
+		</style>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<script type="text/javascript" src="jquery-1.6.1.min.js"></script>
+		<script type="text/javascript" src="webquery.js"></script>
+	</head>
+	<body id="body">
 	<form id="fm" name="fm" >
 		<div style="background-color:#666;padding:5px;vertical-align:middle;color:#ffffff;">
 			<a style='font-size:small;color:white;margin-right:5px;margin-left:5px;' onclick="id_display_toggle('setting');" href="javascript:void(0);">設定</a>
@@ -47,9 +57,10 @@
 			<!--<a style="font-size:small;color:white;margin-right:5px;margin-left:5px;" href="javascript:void(0);" onclick="run_reload();">更新</a>-->
 			<input id="reload_num" name="reload_num" type="hidden" value=""/>
 			<!--<span id="ip" style="margin-top:3px;float:right;font-size:small;vertical-align:middle;"></span>-->
-			<span id="ip" style="margin-top:3px;float:right;font-size:small;vertical-align:middle;">ver 1.01</span>
+			<span id="ip" style="margin-top:3px;float:right;font-size:small;vertical-align:middle;">ver 1.1</span>
 			
 		</div>
+		
 		<!-- 設定パネル start -->
 		<div id="setting" name="setting" style="display:none;font-size:small;">
 			<table style="font-size:small;background-color:#ccc;width:100%;">
@@ -64,17 +75,8 @@
 						<option value="mysql" />MySQL</option>
 						<!---<option value="oracle" />Oracle</option>--->
 					</select>
-					<!---
-					<select id="setting_connect_char" name="setting_connect_char" size="1" placeholder="文字コード" >
-						<option value="utf8" checked/>UTF-8</option>
-						<option value="ASCII" />ASCII</option>
-						<option value="MS932" />MS932</option>
-						<option value="ISO-2022-JP" />ISO-2022-JP</option>
-						<option value="SJIS" />Shift-JIS</option>
-						<option value="euc-jp" />EUC-JP</option>
-					</select>
-					--->
 					<input id="setting_connect_ip" name="setting_connect_ip" size="20" type="text" value="" placeholder="IP"/>
+					<input id="setting_connect_port" name="setting_connect_port" size="20" type="text" value="" placeholder="ポート番号"/>
 					<input id="setting_connect_user" name="setting_connect_user" size="20" type="text" value="" placeholder="ユーザー名"/>
 					<input id="setting_connect_pass" name="setting_connect_pass" size="20" type="password" value="" placeholder="パスワード"/>
 					
@@ -82,43 +84,51 @@
 					<input id="setting_connect_del" name="setting_connect_del" size="10" type="button" onclick="connect_del();" value="削除" />
 					</td>
 				</tr>
-				<!---
 				<tr>
-				<td style="text-align:right;">文字コード：</td>
-				<td>
-					<select id="setting_char_code" name="setting_char_code" size="1" style="" >
-						<option value="utf8" checked/>UTF-8</option>
-						<option value="ASCII" />ASCII</option>
-						<option value="MS932" />MS932</option>
-						<option value="ISO-2022-JP" />ISO-2022-JP</option>
-						<option value="SJIS" />Shift-JIS</option>
-						<option value="euc-jp" />EUC-JP</option>
-					</select>
-				</td>
-				</tr>
-				--->
-				<tr>
-					<td style="text-align:right;">表示：</td>
+					<td style="text-align:right;">デバッグ：</td>
 					<td>
-						<label><input type="checkbox" name="debug_panel_toggle" id="debug_panel_toggle" onchange="id_display_toggle('debug_panel');ls_save('debug_panel_toggle');" value="1"/>デバッグパネル</label>
+						<label><input type="checkbox" name="debug_post" id="debug_post" onchange="id_display_toggle('debug_post_panel');" value="1"/>POST値</label>
+						<label><input type="checkbox" name="debug_html" id="debug_html" onchange="id_display_toggle('debug_html_panel');"" value="1"/>ajaxHTML</label>
 					</td>
 				</tr>
-
 				<tr>
 					<td style="text-align:right;">省略文字数：</td>
 					<td><input id="setting_value_limit" name="setting_value_limit" size="2" type="text" onchange="ls_save('setting_value_limit');" value="100"/></td>
 				</tr>
-
+				<tr>
+					<td style="text-align:right;">制限数：</td>
+					<td>
+					{% for num in config_limit_num_list %}
+					<label>
+						<input type="radio" id="limit_num" name="limit_num" value="{{num}}"  onchange="ls_save('limit_num');" {% if limit_num_selected==num %} selected {% endif %} />{{num}}
+					</label>
+					{% endfor %}
+				</tr>
+				<tr>
+					<td style="text-align:right;">テーブルリスト内容：</td>
+					<td>
+					{% for type in config_table_type %}
+					<label>
+						<input type="checkbox" name="setting_tblsel_view_type[]" id="setting_tblsel_view_type_{{type.key}}" onclick="ls_save('setting_tblsel_view_type_{{type.key}}'); tbl_type_change('{{type.key}}')" value="{{type.key}}" {%if config_table_type_selected==type.key %} selected {% endif %}/>{{type.value}}
+					</label>
+					{% endfor %}
+					</td>
+				</tr>
 			</table>
 		</div>
 		<div style="clear:both;" />
 		<!-- 設定パネル end -->
 
-		<!-- デバッグパネル -->
-		<div id="debug_panel" style="display:none;font-size:x-small;">
+		<!-- postパネル -->
+		<div id="debug_post_panel" style="display:none;font-size:x-small;">
 			<textarea type="text" style="width:100%;height:300px;font-size:x-small;" value="" id="postview" ></textarea>
 		</div>
-
+		
+		<!-- ajaxHTMLパネル -->
+		<div id="debug_html_panel" style="display:none;font-size:x-small;">
+			<textarea type="text" style="width:100%;height:300px;font-size:x-small;" value="" id="htmlview" ></textarea>
+		</div>
+		
 		<!-- 実行パネル -->
 		<div id="control_panel" name="control_panel" style="background-color:#666;padding:5px;vertical-align: middle;">
 			<!-- クエリ入力ボックス -->
@@ -133,7 +143,7 @@
 			<select id="message" name="message" size="1" style="background-color:#fff;width:89%;"></select>
 			<!--<a id="save_link" name="save_link" href="#" style="font-size:small;color:white;margin-right:5px;margin-left:5px;">保存</a>-->
 		</div>
-
+		
 		<!-- 実行パネルオプション部分 -->
 		<div id="control_opt" name="control_opt"></div>
 		
@@ -148,6 +158,7 @@
 			</select>
 			HOST:<input type="text" id="diff_connect_ip" name="diff_connect_ip" value="">
 			DB:<input type="text" id="diff_connect_dbname" name="diff_connect_dbname" value="">
+			PORT:<input type="text" id="diff_connect_port" name="diff_connect_port" value="">
 			USER:<input type="text" id="diff_connect_user" name="diff_connect_user" value="">
 			PASS:<input type="password" id="diff_connect_pass" name="diff_connect_pass" value="">
 			<input type="button" value="DIFF" onclick="run_diff()">
@@ -164,4 +175,3 @@
 	</form>
 </body>
 </html>
-

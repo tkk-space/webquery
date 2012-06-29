@@ -261,7 +261,9 @@ function ajax_result(html, result_id) {
 			}
 		}
 	} else {
-		alert('error!\nhtml:' + html + '\nret:' + ret);
+		if (html !== '') {
+			alert('error!\nresult_id:' + result_id + 'html:' + html + '\nret:' + ret);
+		}
 	}
 }
 
@@ -372,6 +374,7 @@ function connect_load(id) {
 	$('#' + id + '_char').val(options[4]);
 	$('#' + id + '_name').val(options[5]);
 	$('#' + id + '_id').val(options[6]);
+	$('#' + id + '_port').val(options[7]);
 }
 
 // 接続設定削除
@@ -418,10 +421,11 @@ function connect_save() {
 	var host = $('#setting_connect_ip').val();
 	var user = $('#setting_connect_user').val();
 	var pass = $('#setting_connect_pass').val();
+	var port = $('#setting_connect_port').val();
 	var charcode = $('#setting_connect_char').val();
 	
 	var num = get_connect_num();
-	var new_connect = '<option value="' + host + '<##!##>' + user + '<##!##>' + pass + '<##!##>' + dbtype + '<##!##>' + charcode + '<##!##>' + name + '<##!##>' + num + '<##!##>">' + name + '</option>';
+	var new_connect = '<option value="' + host + '<##!##>' + user + '<##!##>' + pass + '<##!##>' + dbtype + '<##!##>' + charcode + '<##!##>' + name + '<##!##>' + num + '<##!##>' + port + '<##!##>">' + name + '</option>';
 	
 	localStorage.setItem('connect_set' + num , new_connect);
 	alert('接続リストに' + name + 'を保存しました');
@@ -573,7 +577,7 @@ function create_refa() {
 	var ins_names = csv_to_array(col_names);
 	var ins_types = csv_to_array(col_types);
 	for (var i = 0;i < ins_types.length;i++) {
-		create_values += ins_names[i] + ' ' + ins_types[i] + ' DEFAULT NULL, ';
+		create_values += ins_names[i] + ' ' + ins_types[i] + ', ';
 	}
 	create_values = remove_comma(create_values);
 	
@@ -598,7 +602,7 @@ function create_refa() {
 	} else if (type === 'refa_rowdel') {
 		refa = "DELETE FROM " + table_name + " WHERE " + col_name + " ='';";
 	} else if (type === 'refa_colcre') {
-		refa = "ALTER " + table_type_name + table_name + " ADD " + col_name + " " + col_type + " DEFAULT NULL;";
+		refa = "ALTER " + table_type_name + table_name + " ADD " + col_name + " " + col_type + ";";
 	} else if (type === 'refa_colup') {
 		refa = "ALTER " + table_type_name + table_name + " RENAME COLUMN " + col_name + " to " + col_name + ";";
 	} else if (type === 'refa_coldel') {
@@ -711,7 +715,7 @@ function page_sel(id, cmd) {
 
 // 実行ボタン押下時
 function run_query() {
-	run_ajax('query_run', 'db_viewer,view_opt');
+	run_ajax('query_run', 'db_viewer');
 	$('#diff').css('display', 'none');
 	//$("#query").css('height', '60px');
 }
@@ -761,6 +765,8 @@ $(document).ready(function () {
 	load_display_toggle('tbl_list');
 	load_display_toggle('tbl_type_select');
 	
+	$('#debug_post').attr('checked', false);
+	$('#debug_html').attr('checked', false);
 	//接続リスト初期化
 	connect_init();
 	
