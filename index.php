@@ -131,7 +131,7 @@ function ajax_db_option(){
 		$db_opt_html.='<option value="'.$row['datname'].'" '.$selected.'>'.$row['datname'].'</option>';
 	}
 	
-	ajax_end('DBに接続しました','',$db_opt_html);
+	result_print('DBに接続しました','',0,$db_opt_html);
 }
 
 function ajax_tbl_option(){
@@ -145,20 +145,24 @@ function ajax_tbl_option(){
 	$form_types=$_POST["setting_tblsel_view_type"];
 	
 	// テーブルのオプション表示
-	$tbl_opt_html='<option value=""></option>';
-	while($db_ary=$pdb->fetch()){
-		$disabled='';
-		$disp='';
-		$type_rows[$db_ary[1]]++;
-		if(!in_array($db_ary[1],$form_types)){ $disp='none';$disabled='disabled="disabled";'; }
-		$selected='';
-		if($_POST["tbl_select"] == $db_ary[0]){ $selected="selected"; }
-		// テーブル以外の場合タイプ名を右につける
-		if($db_ary['relkind']!='r'){ $db_ary['rows']=$db_ary['relkind']; }
-		$tbl_opt_html.='<option '.$disabled.' style="display:'.$disp.'; background:'.$typ_color[$db_ary['relkind']].';"	 type="'.$db_ary['relkind'].'" value="'.$db_ary['relname'].'" '.$selected.'>'.$db_ary['relname'].'	 ('.$db_ary['rows'].')</option>';
+	if(is_array($form_types)){
+		$tbl_opt_html='<option value=""></option>';
+		while($db_ary=$pdb->fetch()){
+			$disabled='';
+			$disp='';
+			$type_rows[$db_ary[1]]++;
+			if(!in_array($db_ary[1],$form_types)){ $disp='none';$disabled='disabled="disabled";'; }
+			$selected='';
+			if($_POST["tbl_select"] == $db_ary[0]){ $selected="selected"; }
+			// テーブル以外の場合タイプ名を右につける
+			if($db_ary['relkind']!='r'){ $db_ary['rows']=$db_ary['relkind']; }
+			$tbl_opt_html.='<option '.$disabled.' style="display:'.$disp.'; background:'.$typ_color[$db_ary['relkind']].';"	 type="'.$db_ary['relkind'].'" value="'.$db_ary['relname'].'" '.$selected.'>'.$db_ary['relname'].'	 ('.$db_ary['rows'].')</option>';
+		}
+	}else{
+		$tbl_opt_html='<option type="" value="">設定内のテーブル内容をチェックして下さい</option>';
 	}
 	
-	ajax_end('DBを選択しました','',$tbl_opt_html);
+	result_print('DBを選択しました','',0,$tbl_opt_html);
 }
 
 function ajax_db_view(){
@@ -173,7 +177,7 @@ function ajax_db_view(){
 		}
 		$html=array();
 		$html=get_table_html($sqlx);
-		ajax_end('テーブルを表示しました',$sqlx,$html);
+		result_print('テーブルを表示しました',$sqlx,0,$html);
 	}
 }
 
@@ -183,21 +187,24 @@ function ajax_query_run(){
 	$sqlxs=preg_split('/;/',$sqlx);
 	$html[0]='';
 	$html[1]='';
+	$html[2]='';
 	foreach ($sqlxs as $k => $sql ){
 		if(trim($sql)!=''){
 			$sql.=';';
 			if(preg_match("/^[\s]*(SELECT)/i",$sql)){
 				$table_html=get_table_html($sql);
 				$html[0].=$table_html[0];
-				$html[1].=$table_html[2];
+				$html[1].=$table_html[3];
 			}else{
 				run_sql_query($sql,'query_run');
 				$html[0].="<font color=\"#ff0000\">$sql</font><br>";
 				//$html[1].='';
+				$html[1].='';
+				$html[2].='';
 			}
 		}
 	}
-	ajax_end('クエリを実行しました',$sqlx,$html);
+	result_print('クエリを実行しました',$sqlx,0,$html);
 }
 
 function get_pager(){
@@ -296,6 +303,7 @@ function get_table_html($sqlx){
 	$html[] = get_pager();
 	$html[] = $col_html;
 	$html[] = $table_info;
+	
 	return $html;
 }
 
@@ -317,14 +325,9 @@ function ajax_get_sql(){
 	$get_sqlx=get_sql_query($_POST["refarence"]);
 	$pdb=run_sql_query( $get_sqlx, __FUNCTION__);
 	$dat=$pdb->fetch(PDO::FETCH_ASSOC);
-	ajax_end('SQLを取得','',$dat["definition"]);
+	result_print('SQLを取得','',0,$dat["definition"]);
 }
 
-
-// 終了作業
-function ajax_end($mes,$sqlx_mes,$html=array()){
-	result_print($mes,$sqlx_mes,0,$html);
-}
 
 // わざとエラーを起こして画面上に表示
 function alert($mes){
@@ -336,7 +339,8 @@ function error_print($mes,$sqlx){
 	result_print($mes,$sqlx,1,array('','','','','',''));
 }
 
-function result_print($mes,$sqlx_mes,$code,$html=array()){
+function result_print($mes,$sqlx_mes,$code,$html=array(),$page_file='',$data=''){
+	$app = Slim::getInstance();
 	$mes_info.='(';
 	$mes_info.=($_POST["setting_connect_ip"])	?' HOST:'.$_POST["setting_connect_ip"]:'';
 	$mes_info.=($_POST["db_select"])			?' DB:'.$_POST["db_select"]:'';
@@ -351,19 +355,18 @@ function result_print($mes,$sqlx_mes,$code,$html=array()){
 	$mes_tsv.=$sqlx_mes."\t";
 	$mes_tsv.=$code;
 	
-	$mes_tsv=array($mes_tsv);
-	
 	$html=(!is_array($html))?array($html):$html;
 	
-	$ary=array_merge($mes_tsv,$html);
+	array_unshift($html,$mes_tsv);
 	
 	// 返す文字列（<##!##>が区切り文字）
 	// メッセージTSV<##!##>表示されるHTML1<##!##>HTML2..3..
 	$sep='<##!##>';
 	$print_str='';
-	foreach ($ary as $_){
+	foreach ($html as $_){
 		$print_str .= $_.$sep;
 	}
+	
 	print $print_str;
 }
 
@@ -375,7 +378,7 @@ function run_sql_query($sqlx,$err_mes='',$DB=""){
 	$pdb=$DB->query($sqlx);
 	if(!$pdb){
 		error_print("DB実行エラー(".$err_mes.")：".error_disp($DB->errorInfo(),$sqlx),$sqlx);
-	}else{
+	} else {
 		return $pdb;
 	}
 }
@@ -474,8 +477,6 @@ function ajax_diff(){
 		<th>種別</th>
 	</tr>';
 	
-	
-	
 	foreach($result as $columns){
 		$html.="
 		<tr>
@@ -488,10 +489,8 @@ function ajax_diff(){
 		";
 	}
 	$html.='</table>';
-	
-	ajax_end('比較しました','',$html);
+	result_print('比較しました','',0,$html);
 }
-
 
 function sql_add_link($link_name,$sql){
 	return '<a href="javascript:void(0);" onclick="$(\'#query\').val($(\'#query\').val()+\'\\n\'+\''.$sql.'\')">'.$link_name.'</a>';
@@ -680,8 +679,8 @@ function main(){
 	$data["config_table_type"][3]['value']='index';
 	
 	$data["title"]=$_SERVER['SERVER_NAME'];
+	$data["version"]='1.2';
 	$app->render('main.html',$data);
-	
 }
 
 function before(){

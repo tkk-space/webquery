@@ -1,13 +1,10 @@
 "use strict";
 
-
-
 // 日時などの桁を合わせる
 function conv2deg(val) {
 	val = "00" + val;
 	return val.substr(val.length - 2, 2);
 }
-
 
 // 現在の日時テキストを取得
 function get_date_txt() {
@@ -15,7 +12,6 @@ function get_date_txt() {
 	date = (conv2deg(date.getMonth() + 1)) + "/" + conv2deg(date.getDate()) + " " + conv2deg(date.getHours()) + ":" + conv2deg(date.getMinutes()) + ":" + conv2deg(date.getSeconds());
 	return date;
 }
-
 
 //重複を取り除く関数
 function unique(array) {
@@ -29,7 +25,6 @@ function unique(array) {
 	}
 	return uniqueArray;
 }
-
 
 // テキスト整形
 function text_clean(value) {
@@ -155,8 +150,6 @@ function query_clean(value) {
 
 //------------------- ローカルストレージ用関数 ------------///
 
-
-
 // ローカルストレージに保存
 function ls_save(id) {
 	if (!id) {
@@ -277,6 +270,8 @@ function run_ajax(type, result_id, post_add) {
 	var post = 'type=' + type + '&' + $("#fm").serialize() + '&' + post_add;
 	var r_ids = result_id.split(',');
 	
+	$('#view_opt').html('');
+	
 	for (var i = 0;i < r_ids.length;i++) {
 		if ($("#" + r_ids[i]).get(0).tagName === 'SELECT') {
 			$("#" + r_ids[i]).html("<option>reading...<\/option>");
@@ -324,11 +319,11 @@ function run_ajax(type, result_id, post_add) {
 		$('#query').attr('readonly', 'readonly');
 	}
 	// リファレンス初期化
-	$('#refarence').children().removeAttr('selected');	
+	$('#refarence').children().removeAttr('selected');
 	return 1;
 }
 
-	
+
 // 表示切替
 function id_display_toggle(id) {
 	if ($("#" + id).css('display') === 'block' || $("#" + id).css('display') === 'inline') {
@@ -355,7 +350,6 @@ function connect_init() {
 			data += connect_data;
 		}
 	}
-	// data += '<option value="DUMMY_DB_HOST<##!##>DUMMY_DB_USER<##!##>DUMMY_DB_PASSWORD<##!##>mysql<##!##><##!##>0">fluxflexサンプル</option>';
 	$('#connect_select').html(data);
 	$('#diff_connect_select').html(data);
 }
@@ -444,27 +438,6 @@ function run_clean_query() {
 	$("#query").css('height', height + 'px');
 }
 
-
-// 更新ボタン処理
-function run_reload() {
-	var i = 0;
-	var ids = '';
-	if ($('#connect_select').val() !== '') {
-		i++;
-		ids = 'db_select';
-		if ($('#db_select').val() !== '') {
-			i++;
-			ids += ',tbl_select';
-			if ($('#tbl_select').val() !== '') {
-				i++;
-				ids += ',col_select';
-			}
-		}
-	}
-	
-	$('#reload_num').val(i);
-	run_ajax('reload', ids);
-}
 
 // クエリ内キーボード操作
 function run_key(event) {
@@ -640,7 +613,7 @@ function dbview_chk_sql(id) {
 // チェックボックス色切り替え&SQL作成
 function dbview_chk_toggle(id) {
 	if ($(id).attr('check') === '1') {
-		$(id).css('background', 'white');
+		$(id).css('background-color', 'white');
 		$(id).attr('onmouseout', $(id).attr('_onmouseout'));
 		$(id).attr('onmouseover', $(id).attr('_onmouseover'));
 		$(id).removeAttr('_onmouseout');
@@ -648,7 +621,7 @@ function dbview_chk_toggle(id) {
 		$(id).attr('check', '0');
 	} else {
 		dbview_chk_sql(id);
-		$(id).css('background', 'orange');
+		$(id).css('background-color', 'orange');
 		$(id).attr('_onmouseout', $(id).attr('onmouseout'));
 		$(id).attr('_onmouseover', $(id).attr('onmouseover'));
 		$(id).removeAttr('onmouseout');
@@ -715,7 +688,7 @@ function page_sel(id, cmd) {
 
 // 実行ボタン押下時
 function run_query() {
-	run_ajax('query_run', 'db_viewer');
+	run_ajax('query_run', 'db_viewer,view_opt');
 	$('#diff').css('display', 'none');
 	//$("#query").css('height', '60px');
 }
